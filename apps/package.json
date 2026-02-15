@@ -1,0 +1,12 @@
+{
+  "name": "info4607-project",
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "cd backend && conda run -n info4607-backend uvicorn app:app --reload --port 8000",
+    "dev:all": "concurrently -k -n FRONTEND,BACKEND \"npm run dev:frontend\" \"npm run dev:backend\""
+  }
+}
