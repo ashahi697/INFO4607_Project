@@ -8,6 +8,12 @@ This repo has:
 - Node.js (for frontend)
 - Miniconda or Anaconda (for backend)
 
+### Run Frontend and Backend
+From app folder
+``` bash
+npm run dev:all
+```
+
 ### Create .env file in backend
 ``` bash
 SUPABASE_URL=https://nhurxywtrrajauwqnkut.supabase.co
