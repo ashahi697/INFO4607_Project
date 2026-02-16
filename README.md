@@ -15,7 +15,7 @@ SUPABASE_SERVICE_ROLE_KEY= #get from supabase
 ```
 
 ### Backend Setup (first time only)
-From the repo root:
+From the backend folder:
 
 ```bash
 cd apps/backend
