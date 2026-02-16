@@ -13,13 +13,6 @@ This repo has:
 SUPABASE_URL=https://nhurxywtrrajauwqnkut.supabase.co
 SUPABASE_SERVICE_ROLE_KEY= #get from supabase
 ```
-### Run Both Frontend/Backend
-
-First time only
-```bash
-npm init -y
-npm i -D concurrently
-```
 
 ### Backend Setup (first time only)
 From the repo root:
