@@ -8,16 +8,40 @@ This repo has:
 - Node.js (for frontend)
 - Miniconda or Anaconda (for backend)
 
+
+### Initial Set Up
+
+If you havent installed nodejs you will need to before you can run npm commands
+
+In your terminal do the following:
+
+Navigate to /apps/frontend and run 
+```bash
+npm install
+```
+
+Navigate to /apps/backened
+If anaconda is installed run, otherwise install and then run
+``` bash
+conda env create -f environment.yml
+```
+
+Navigate back to /apps and run
+``` bash
+npm install --save-dev concurrently
+```
+
+Create .env file in /apps/backend
+``` bash
+SUPABASE_URL=https://nhurxywtrrajauwqnkut.supabase.co
+SUPABASE_SERVICE_ROLE_KEY= #get from supabase
+```
+Once everything above is done you should be good to run it with the command below
+
 ### Run Frontend and Backend
 From app folder
 ``` bash
 npm run dev:all
-```
-
-### Create .env file in backend
-``` bash
-SUPABASE_URL=https://nhurxywtrrajauwqnkut.supabase.co
-SUPABASE_SERVICE_ROLE_KEY= #get from supabase
 ```
 
 ### Backend Setup (first time only)
