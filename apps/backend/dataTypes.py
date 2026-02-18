@@ -2,24 +2,6 @@ import calendar
 from datetime import date, datetime
 
 
-FREQUENCY_ALIASES = {
-    "MONDAYS": "MONDAY",
-    "TUESDAYS": "TUESDAY",
-    "WEDNESDAYS": "WEDNESDAY",
-    "THURSDAYS": "THURSDAY",
-    "FRIDAYS": "FRIDAY",
-    "SATURDAYS": "SATURDAY",
-    "SUNDAYS": "SUNDAY",
-}
-
-
-def normalize_frequency(value):
-    if not value:
-        return None
-    upper = str(value).strip().upper()
-    return FREQUENCY_ALIASES.get(upper, upper)
-
-
 def get_month_info(year: int, month: int):
     # Monday = 0, Sunday = 6 (default behavior)
     first_weekday, days_in_month = calendar.monthrange(year, month)
@@ -48,25 +30,25 @@ def process_repeated_events_month(events):
     mondays, tuesdays, wednesdays, thursdays, fridays, saturdays, sundays, daily, monthly = [], [], [], [], [], [], [], [], []
     for event in events:
         recurrence = event.get("recurrences")
-        frequency = normalize_frequency(recurrence.get("frequency") if recurrence else None)
+        frequency = recurrence.get("frequency") if recurrence else None
 
         if frequency == "DAILY":
             daily.append(event)
         elif frequency == "MONTHLY":
             monthly.append(event)
-        elif frequency == "MONDAY":
+        elif frequency == "MONDAYS":
             mondays.append(event)
-        elif frequency == "TUESDAY":
+        elif frequency == "TUESDAYS":
             tuesdays.append(event)
-        elif frequency == "WEDNESDAY":
+        elif frequency == "WEDNESDAYS":
             wednesdays.append(event)
-        elif frequency == "THURSDAY":
+        elif frequency == "THURSDAYS":
             thursdays.append(event)
-        elif frequency == "FRIDAY":
+        elif frequency == "FRIDAYS":
             fridays.append(event)
-        elif frequency == "SATURDAY":
+        elif frequency == "SATURDAYS":
             saturdays.append(event)
-        elif frequency == "SUNDAY":
+        elif frequency == "SUNDAYS":
             sundays.append(event)
     return mondays, tuesdays, wednesdays, thursdays, fridays, saturdays, sundays, daily, monthly
 
