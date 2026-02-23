@@ -34,7 +34,7 @@ npm install --save-dev concurrently
 Create .env file in /apps/backend
 ``` bash
 SUPABASE_URL=https://nhurxywtrrajauwqnkut.supabase.co
-SUPABASE_SERVICE_ROLE_KEY= #get from supabase
+SUPABASE_SERVICE_ROLE_KEY= #get from supabase under project settings -> api keys -> legacy anon, service_role api keys -> reveal service_role
 ```
 Once everything above is done you should be good to run it with the command below
 
