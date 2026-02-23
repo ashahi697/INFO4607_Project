@@ -10,4 +10,5 @@ dependencies:
       - python-dotenv
       - supabase
       - pydantic
-
+      - pytest
+      - httpx

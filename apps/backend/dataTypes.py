@@ -1,6 +1,13 @@
 import calendar
 from datetime import date, datetime
 
+#########################################################
+#########################################################
+
+# Start Calendar classes and helper functions
+
+#########################################################
+#########################################################
 
 def get_month_info(year: int, month: int):
     # Monday = 0, Sunday = 6 (default behavior)
@@ -26,35 +33,35 @@ def process_events_month(events):
     return processed
 
 
-def process_repeated_events_month(events):
+def process_repeated_events_month(events, month, year):
     mondays, tuesdays, wednesdays, thursdays, fridays, saturdays, sundays, daily, monthly = [], [], [], [], [], [], [], [], []
     for event in events:
         recurrence = event.get("recurrences")
         frequency = recurrence.get("frequency") if recurrence else None
-
-        if frequency == "DAILY":
-            daily.append(event)
-        elif frequency == "MONTHLY":
-            monthly.append(event)
-        elif frequency == "MONDAYS":
-            mondays.append(event)
-        elif frequency == "TUESDAYS":
-            tuesdays.append(event)
-        elif frequency == "WEDNESDAYS":
-            wednesdays.append(event)
-        elif frequency == "THURSDAYS":
-            thursdays.append(event)
-        elif frequency == "FRIDAYS":
-            fridays.append(event)
-        elif frequency == "SATURDAYS":
-            saturdays.append(event)
-        elif frequency == "SUNDAYS":
-            sundays.append(event)
+        if event.get("repeat_until") is None or datetime.fromisoformat(event["repeat_until"]) >= datetime(year, month, 1):
+            if frequency == "DAILY":
+                daily.append(event)
+            elif frequency == "MONTHLY":
+                monthly.append(event)
+            elif frequency == "MONDAYS":
+                mondays.append(event)
+            elif frequency == "TUESDAYS":
+                tuesdays.append(event)
+            elif frequency == "WEDNESDAYS":
+                wednesdays.append(event)
+            elif frequency == "THURSDAYS":
+                thursdays.append(event)
+            elif frequency == "FRIDAYS":
+                fridays.append(event)
+            elif frequency == "SATURDAYS":
+                saturdays.append(event)
+            elif frequency == "SUNDAYS":
+                sundays.append(event)
     return mondays, tuesdays, wednesdays, thursdays, fridays, saturdays, sundays, daily, monthly
 
 
 class RepeatedEventsMonth:
-    def __init__(self, events):
+    def __init__(self, events, month, year):
         (
             self.mondays,
             self.tuesdays,
@@ -65,7 +72,7 @@ class RepeatedEventsMonth:
             self.sundays,
             self.daily,
             self.monthly,
-        ) = process_repeated_events_month(events)
+        ) = process_repeated_events_month(events, month, year)
 
 
 def process_events_calendar(events):
@@ -92,7 +99,7 @@ class Month:
             self.last_weekday_name,
             self.days_in_month,
         ) = get_month_info(year, number)
-        self.repeated_events = RepeatedEventsMonth(repeated_events)
+        self.repeated_events = RepeatedEventsMonth(repeated_events, number, year)
 
 
 def get_unique_months(events):
@@ -151,3 +158,14 @@ class Calendar:
     def __init__(self, events):
         self.repeated_events, self.calendar_events = process_events_calendar(events)
         self.months = process_months(self.calendar_events, self.repeated_events)
+    
+    def get_months(self):
+        return self.months
+
+#########################################################
+#########################################################
+
+# End Calendar classes and helper functions
+
+#########################################################
+#########################################################s
