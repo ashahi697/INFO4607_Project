@@ -22,7 +22,7 @@ def get_calendar_events(userID):
     )
     return Calendar(res.data)
 
-def create_event(userID, eventData):
+def create_new_event(userID, eventData):
     res = (
         supabase_client
         .table("events")
@@ -34,9 +34,51 @@ def create_event(userID, eventData):
             "end_time": eventData.end_time,
             "start_date": eventData.start_date,
             "end_date": eventData.end_date,
-            "recurrences": eventData.recurrence,
+            "recurrences": eventData.recurrences,
             "repeat_until": eventData.repeat_until
         })
+        .execute()
+    )
+    return res.data
+
+def delete_user_event(userID, event_id):
+    res = (
+        supabase_client
+        .table("events")
+        .delete()
+        .eq("user_id", userID)
+        .eq("event_id", event_id)
+        .execute()
+    )
+    return res.data
+
+def get_calendar_user_event(userID, event_id):
+    res = (
+        supabase_client
+        .table("events")
+        .select("*, recurrences(frequency)")
+        .eq("user_id", userID)
+        .eq("event_id", event_id)
+        .execute()
+    )
+    return res.data
+
+def edit_calendar_user_event(userID, event_id, eventData):
+    res = (
+        supabase_client
+        .table("events")
+        .update({
+            "title": eventData.title,
+            "description": eventData.description,
+            "start_time": eventData.start_time,
+            "end_time": eventData.end_time,
+            "start_date": eventData.start_date,
+            "end_date": eventData.end_date,
+            "recurrences": eventData.recurrences,
+            "repeat_until": eventData.repeat_until
+        })
+        .eq("user_id", userID)
+        .eq("event_id", event_id)
         .execute()
     )
     return res.data
