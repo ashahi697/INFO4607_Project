@@ -83,3 +83,11 @@ cd apps/frontend
 npm install
 npm run dev
 ```
+
+
+### Run Tests
+You must activate the anaconda environment from inside the backend folder first, then
+from inside the test folder run:
+```bash
+pytest
+```
