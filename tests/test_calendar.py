@@ -12,6 +12,7 @@ from dataTypes import Calendar
 
 client = TestClient(app)
 
+test_user_id = "03d78572-f213-4584-b8b2-e1a34dd1c030"
 
 def test_build_calendar_groups_events_by_day():
     events = [
@@ -96,7 +97,7 @@ def assert_month_shape(month: dict):
 
 
 def test_calendar_endpoint_returns_month_objects():
-    r = client.get("/calendar")
+    r = client.get("/calendar", params={"userID": test_user_id})
     assert r.status_code == 200
 
     data = r.json()
@@ -121,7 +122,7 @@ def ym(d: date) -> tuple[int, int]:
 
 
 def test_no_repeated_events_after_repeat_until_month():
-    r = client.get("/calendar")
+    r = client.get("/calendar", params={"userID": test_user_id})
     assert r.status_code == 200
 
     payload = r.json()
@@ -152,3 +153,117 @@ def test_no_repeated_events_after_repeat_until_month():
                     f"Event {event.get('event_id')} appears in {month_year}-{month_num:02d} "
                     f"but repeat_until is {repeat_until} (should not appear after that month)."
                 )
+
+def test_repeated_events_appear_in_correct_buckets():
+    r = client.get("/calendar", params={"userID": test_user_id})
+    assert r.status_code == 200
+
+    payload = r.json()
+    assert "Calendar" in payload
+    months = payload["Calendar"]
+    assert isinstance(months, list)
+
+    for month in months:
+        rep = month.get("repeated_events", {})
+        assert isinstance(rep, dict)
+
+        for bucket in REPEAT_BUCKETS:
+            events = rep.get(bucket, [])
+            assert isinstance(events, list)
+
+            for event in events:
+                frequency = event.get("recurrences", {}).get("frequency")
+                if bucket == "daily":
+                    assert frequency == "DAILY", f"Event {event.get('event_id')} in 'daily' bucket has frequency {frequency}"
+                elif bucket == "monthly":
+                    assert frequency == "MONTHLY", f"Event {event.get('event_id')} in 'monthly' bucket has frequency {frequency}"
+                else:
+                    expected_freq = bucket.upper()  # e.g. "mondays" -> "MONDAY"
+                    assert frequency == expected_freq, f"Event {event.get('event_id')} in '{bucket}' bucket has frequency {frequency}"
+
+
+def test_create_and_delete_event():
+    new_event = {
+        "title": "Test Event",
+        "description": "This is a test event.",
+        "start_time": "00:00-07:00",
+        "end_time": "07:00-07:00",
+        "start_date": "2026-03-01",
+        "end_date": None,
+        "recurrences": None,
+        "repeat_until": None
+    }
+
+    r = client.post("/create_event", json=new_event, params={"userID": test_user_id})
+    assert r.status_code == 200
+    payload = r.json()
+    assert "message" in payload
+
+    # if message is a list of inserted rows:
+    event_id = str(payload["message"][0]["event_id"])
+    assert event_id is not None
+    
+    data = r.json()
+    assert isinstance(data, dict)
+    assert "message" in data
+    assert data["message"] is not None
+
+    print("event_id:", event_id, type(event_id))
+    r2 = client.delete("/delete_event", params={"userID": test_user_id, "event_id": event_id})
+    assert r2.status_code == 200
+    data2 = r2.json()
+    assert isinstance(data2, dict)
+    r3 = client.get("/calendar_event", params={"userID": test_user_id, "event_id": event_id})
+    assert r3.status_code == 404
+
+def test_edit_event():
+    # First, create a new event to edit
+    new_event = {
+        "title": "Event to Edit",
+        "description": "This event will be edited.",
+        "start_time": "00:00:00-07:00",
+        "end_time": "07:00:00-07:00",
+        "start_date": "2026-03-01",
+        "end_date": None,
+        "recurrences": None,
+        "repeat_until": None
+    }
+
+    r = client.post("/create_event", json=new_event, params={"userID": test_user_id})
+    assert r.status_code == 200
+    payload = r.json()
+    event_id = str(payload["message"][0]["event_id"])
+    assert event_id is not None
+
+    # Now edit the event
+    updated_event = {
+        "title": "Edited Event Title",
+        "description": "The event description has been updated.",
+        "start_time": "01:00:00-07:00",
+        "end_time": "08:00:00-07:00",
+        "start_date": "2026-03-02",
+        "end_date": None,
+        "recurrences": None,
+        "repeat_until": None
+    }
+
+    r2 = client.put("/edit_event", json=updated_event, params={"userID": test_user_id, "event_id": event_id})
+    assert r2.status_code == 200
+
+    # Fetch the event and verify changes
+    r3 = client.get("/calendar_event", params={"userID": test_user_id, "event_id": event_id})
+    assert r3.status_code == 200
+    data3 = r3.json()
+    assert isinstance(data3, dict)
+    event_row = data3["Calendar"][0]
+
+    assert event_row["title"] == updated_event["title"]
+    assert event_row["description"] == updated_event["description"]
+    # times come back normalized w/ seconds
+    assert event_row["start_time"].startswith("01:00")
+    assert event_row["end_time"].startswith("08:00")
+    assert event_row["start_date"] == updated_event["start_date"]
+    
+    r4 = client.delete("/delete_event", params={"userID": test_user_id, "event_id": event_id})
+    assert r4.status_code == 200
+
