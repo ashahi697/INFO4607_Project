@@ -1,16 +1,19 @@
 import "./App.css";
-import AppShell from "./components/app-shell/AppShell";
+import Sidebar from "./components/app-shell/Sidebar";
+import Topbar from "./components/app-shell/Topbar";
+import DashboardPage from "./components/dashboard/DashboardPage";
 
 function App() {
   return (
-    <AppShell>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>
-        Welcome back, John
-      </h1>
-      <p style={{ color: "#6b7280" }}>
-        Dashboard scaffold is wired up. Next: cards + productivity heatmap.
-      </p>
-    </AppShell>
+    <div style={{ display: "flex", height: "100vh" }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <Topbar />
+        <main style={{ flex: 1, overflow: "auto", background: "#f5f5f5", padding: "24px" }}>
+          <DashboardPage />
+        </main>
+      </div>
+    </div>
   );
 }
 
