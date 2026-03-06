@@ -24,7 +24,7 @@ export default function Sidebar() {
     <aside className="w-64 h-screen bg-gray-100 border-r flex flex-col justify-between">
       
       <div>
-        <div className="p-4 font-bold text-lg">FinHub</div>
+        <div className="p-4 font-bold text-lg">ProLifiq</div>
 
         <div className="px-4 pb-4">
           <button className="w-full bg-gray-700 text-white py-2 rounded">
