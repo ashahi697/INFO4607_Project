@@ -20,6 +20,11 @@ class EventData(BaseModel):
     recurrences: Optional[str] = None
     repeat_until: Optional[str] = None
 
+class TransactionData(BaseModel): #Still needs to be completed
+    amount: float
+    date: str
+    description: Optional[str] = None
+
 @app.get("/health")
 def health():
     return {"ok": True}
@@ -73,5 +78,74 @@ def edit_event(event: EventData, userID: str, event_id: str):
         return {"message": edit_calendar_user_event(userID=userID, event_id=event_id, eventData=event)}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    
+## Transaction endpoints (placeholders for now, need to be implemented in db.py) ##
+
+@app.get("/get_transactions")
+def get_transactions(userID: str):
+    try:
+        return {"transactions": "user transactions"}#get_user_transactions(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/create_transaction")
+def create_transaction(userID: str, transactionData: TransactionData):
+    try:
+        return {"message": "transaction created"}#create_transaction(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_transaction")
+def delete_transaction(userID: str, transaction_id: str):
+    try:
+        return {"message": "transaction deleted"}#delete_transaction(userID=userID, transaction_id=transaction_id)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_transaction")
+def edit_transaction(userID: str, transaction_id: str, transactionData: TransactionData):
+    try:
+        return {"message": "transaction edited"}#edit_transaction(userID=userID, transaction_id=transaction_id, transactionData=transactionData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
+
+@app.get("/user_budget")
+def get_user_budget(userID: str):
+    try:
+        return {"budget": "user budget"}#get_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/user_remaining_budget")
+def get_user_remaining_budget(userID: str):
+    try:
+        return {"remaining_budget": "user remaining budget"}#get_user_remaining_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/set_user_budget")
+def set_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_user_budget")
+def delete_user_budget(userID: str):
+    try:
+        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_user_budget")
+def edit_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
