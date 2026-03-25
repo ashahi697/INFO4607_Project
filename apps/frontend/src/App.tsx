@@ -2,10 +2,10 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/app-shell/Sidebar";
 import Topbar from "./components/app-shell/Topbar";
-import DashboardPage from "./components/dashboard/DashboardPage";
-import FinancialPage from "./components/pages/FinancialPage";
-import ProductivityPage from "./components/pages/ProductivityPage";
-import CalendarPage from "./components/pages/CalendarPage";
+import Dashboard from "./components/dashboard/DashboardPage";
+import Financial from "./components/pages/FinancialPage";
+import Productivity from "./components/pages/ProductivityPage";
+import Calendar from "./components/pages/CalendarPage";
 
 function App() {
   return (
