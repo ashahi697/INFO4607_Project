@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 type Stat = { label: string; value: string; delta?: string };
 type ScheduleItem = { title: string; time: string };
