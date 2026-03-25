@@ -16,10 +16,10 @@ function App() {
           <Topbar />
           <main className="flex-1 overflow-auto p-6">
             <Routes>
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/financial" element={<FinancialPage />} />
-              <Route path="/productivity" element={<ProductivityPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/financial" element={<Financial />} />
+              <Route path="/productivity" element={<Productivity />} />
+              <Route path="/calendar" element={<Calendar />} />
             </Routes>
           </main>
         </div>
