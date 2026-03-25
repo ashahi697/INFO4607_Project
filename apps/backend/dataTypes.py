@@ -168,4 +168,42 @@ class Calendar:
 # End Calendar classes and helper functions
 
 #########################################################
-#########################################################s
+#########################################################
+
+
+
+
+
+#########################################################
+#########################################################
+# Start Budget Helpers
+#########################################################
+#########################################################
+
+def get_remaining_budget_by_month(transactions, budget):
+    budget_by_month = {}
+    for txn in transactions:
+        txn_date = datetime.fromisoformat(txn["txn_date"])
+        month_year = (txn_date.year, txn_date.month)
+        if month_year not in budget_by_month:
+            budget_by_month[month_year] = 0
+        if not txn["positive"]:
+            budget_by_month[month_year] += txn["amount"]
+        else:
+            budget_by_month[month_year] -= txn["amount"]
+    for month_year in budget_by_month:
+        budget_by_month[month_year] = budget - budget_by_month[month_year]
+    return budget_by_month
+
+def format_remaining_budget(remaining_budget_by_month):
+    formatted = []
+
+    for (year, month), remaining in sorted(remaining_budget_by_month.items()):
+        formatted.append({
+            "year": year,
+            "month": month,
+            "label": f"{year}-{month:02d}",  # optional but useful
+            "remaining": remaining
+        })
+
+    return formatted

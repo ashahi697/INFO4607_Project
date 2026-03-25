@@ -1,9 +1,13 @@
 from uuid import UUID
 from fastapi import FastAPI, HTTPException
-from db import get_all_events, get_calendar_events, create_new_event, delete_user_event, get_calendar_user_event, edit_calendar_user_event
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
+from db import (edit_user_transaction, get_all_events, 
+                get_calendar_events, create_new_event, delete_user_event,
+                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+                create_user_transaction, edit_user_transaction, delete_user_transaction, 
+                delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
 
@@ -20,10 +24,17 @@ class EventData(BaseModel):
     recurrences: Optional[str] = None
     repeat_until: Optional[str] = None
 
-class TransactionData(BaseModel): #Still needs to be completed
+class TransactionData(BaseModel):
     amount: float
-    date: str
-    description: Optional[str] = None
+    txn_date: str
+
+    merchant: Optional[str] = None
+    note: Optional[str] = None
+
+    account_id: Optional[UUID] = None
+    category_id: Optional[UUID] = None
+
+    positive: bool = False
 
 @app.get("/health")
 def health():
@@ -87,28 +98,28 @@ def edit_event(event: EventData, userID: str, event_id: str):
 @app.get("/get_transactions")
 def get_transactions(userID: str):
     try:
-        return {"transactions": "user transactions"}#get_user_transactions(userID=userID)}
+        return {"transactions": get_user_transactions(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/create_transaction")
 def create_transaction(userID: str, transactionData: TransactionData):
     try:
-        return {"message": "transaction created"}#create_transaction(userID=userID)}
+        return {"message": create_user_transaction(userID=userID, transactionData=transactionData)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/delete_transaction")
 def delete_transaction(userID: str, transaction_id: str):
     try:
-        return {"message": "transaction deleted"}#delete_transaction(userID=userID, transaction_id=transaction_id)}
+        return {"message": delete_user_transaction(userID=userID, txn_id=transaction_id)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.put("/edit_transaction")
 def edit_transaction(userID: str, transaction_id: str, transactionData: TransactionData):
     try:
-        return {"message": "transaction edited"}#edit_transaction(userID=userID, transaction_id=transaction_id, transactionData=transactionData)}
+        return {"message": edit_user_transaction(userID=userID, txn_id=transaction_id, transactionData=transactionData)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
@@ -118,14 +129,14 @@ def edit_transaction(userID: str, transaction_id: str, transactionData: Transact
 @app.get("/user_budget")
 def get_user_budget(userID: str):
     try:
-        return {"budget": "user budget"}#get_user_budget(userID=userID)}
+        return {"budget": get_user_budget(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/user_remaining_budget")
 def get_user_remaining_budget(userID: str):
     try:
-        return {"remaining_budget": "user remaining budget"}#get_user_remaining_budget(userID=userID)}
+        return {"remaining_budget": get_user_remaining_budget(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

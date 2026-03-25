@@ -267,3 +267,52 @@ def test_edit_event():
     r4 = client.delete("/delete_event", params={"userID": test_user_id, "event_id": event_id})
     assert r4.status_code == 200
 
+
+#### Transaction Tests ####
+
+def test_create_edit_delete_transaction():
+    new_txn = {
+        "amount": 19.99,
+        "txn_date": "2026-03-01",
+        "merchant": "Test Merchant",
+        "note": "This is a test transaction.",
+        "account_id": None,
+        "category_id": None,
+        "positive": False
+    }
+
+    r = client.post("/create_transaction", json=new_txn, params={"userID": test_user_id})
+    assert r.status_code == 200
+    payload = r.json()
+    assert "message" in payload
+    txn_id = str(payload["message"][0]["txn_id"])
+    assert txn_id is not None
+
+    updated_txn = {
+        "amount": 29.99,
+        "txn_date": "2026-03-02",
+        "merchant": "Updated Merchant",
+        "note": "This transaction has been updated.",
+        "account_id": None,
+        "category_id": None,
+        "positive": False
+    }
+    r2 = client.put("/edit_transaction", json=updated_txn, params={"userID": test_user_id, "transaction_id": txn_id})
+    assert r2.status_code == 200
+    assert r2.json().get("message") is not None
+    data = r2.json()
+    assert isinstance(data, dict)
+    transaction = data["message"][0]
+    assert transaction["amount"] == updated_txn["amount"]
+    assert transaction["txn_date"] == updated_txn["txn_date"]
+    assert transaction["merchant"] == updated_txn["merchant"]
+    assert transaction["note"] == updated_txn["note"]
+
+    r3 = client.delete("/delete_transaction", params={"userID": test_user_id, "transaction_id": txn_id})   
+    assert r3.status_code == 200
+    assert r3.json().get("message") is not None
+
+    r4 = client.get("/get_transactions", params={"userID": test_user_id})
+    assert r4.status_code == 200
+    transactions = r4.json().get("transactions", [])
+    assert all(txn["txn_id"] != txn_id for txn in transactions), "Deleted transaction still appears in transaction list"
