@@ -2,42 +2,43 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { label: "Dashboard", path: "/" },
-  { label: "Financial", path: "/financial" },
-  { label: "Productivity", path: "/productivity" },
-  { label: "Calendar", path: "/calendar" },
+  { label: "Dashboard", path: "/", icon: "🏠" },
+  { label: "Financial", path: "/financial", icon: "💳" },
+  { label: "Productivity", path: "/productivity", icon: "✅" },
+  { label: "Calendar", path: "/calendar", icon: "📅" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 border-r bg-white px-4 py-5">
-      <div className="mb-6 text-lg font-semibold text-gray-900">Prolifiq</div>
+    <aside className="flex w-64 flex-col border-r border-gray-200 bg-white px-4 py-5">
+      <div className="mb-6 text-lg font-semibold text-gray-900">FinHub</div>
 
       <div className="mb-6">
-        <button className="w-full rounded-lg bg-gray-800 px-4 py-2 text-white">
+        <button className="w-full rounded-lg bg-gray-800 px-4 py-2 text-white transition hover:bg-gray-700">
           + Quick Add
         </button>
       </div>
 
-      <nav className="space-y-3">
+      <nav className="space-y-2">
         {navItems.map((item) => (
           <NavLink
             key={item.label}
             to={item.path}
             className={({ isActive }) =>
-              `block rounded-lg px-4 py-3 text-sm transition ${
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
                 isActive
-                  ? "bg-gray-100 font-medium text-gray-900"
+                  ? "bg-gray-100 font-semibold text-gray-900"
                   : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               }`
             }
           >
-            {item.label}
+            <span className="text-base">{item.icon}</span>
+            <span>{item.label}</span>
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-8 text-sm text-gray-500">⚙ Settings</div>
+      <div className="mt-auto pt-8 text-sm text-gray-500">⚙ Settings</div>
     </aside>
   );
 }
