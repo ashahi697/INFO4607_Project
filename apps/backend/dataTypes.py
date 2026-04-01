@@ -193,7 +193,7 @@ def get_remaining_budget_by_month(transactions, budget):
             budget_by_month[month_year] -= txn["amount"]
     for month_year in budget_by_month:
         budget_by_month[month_year] = budget - budget_by_month[month_year]
-    return format_remaining_budget(budget_by_month)
+    return budget_by_month
 
 def format_remaining_budget(remaining_budget_by_month):
     formatted = []
@@ -207,3 +207,51 @@ def format_remaining_budget(remaining_budget_by_month):
         })
 
     return formatted
+
+# returns the last budget row for a specific user
+# if there are multiple budget rows that exist use the recent one
+# return none if no budget exists
+
+def get_user_budget(budgets, user_id):
+
+    user_budgets = [b for b in budgets if b.get("user_id") == user_id]
+
+    if not user_budgets:
+        return None
+
+    user_budgets.sort(key=lambda b: str(b.get("created_at", "")))
+    return user_budgets[-1]
+
+# All budget periods for a specfific user
+# returns all budget periods for a user sorted by date
+
+def get_budget_periods_for_user(budget_periods, user_id):
+
+    user_periods = [
+        p for p in budget_periods
+        if p.get("user_id") == user_id
+    ]
+
+# transactions for the budget periods 
+# returns all transactions for a user inside a date range 
+# date range is inclsuive 
+
+def get_transactions_for_budget_period(transactions, user_id, start_date, end_date):
+ 
+    start_date = _to_date(start_date)
+    end_date = _to_date(end_date)
+
+    filtered = []
+
+    for txn in transactions:
+        if txn.get("user_id") != user_id:
+            continue
+
+        txn_date = _to_date(txn.get("txn_date"))
+
+        if start_date <= txn_date <= end_date:
+            filtered.append(txn)
+
+    return filtered
+    user_periods.sort(key=lambda p: _to_date(p.get("start_date")))
+    return user_periods

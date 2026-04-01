@@ -37,6 +37,7 @@ def create_new_event(userID, eventData):
             "start_date": eventData.start_date,
             "end_date": eventData.end_date,
             "recurrences": eventData.recurrences,
+            "recurrences": eventData.recurrences,
             "repeat_until": eventData.repeat_until
         })
         .execute()

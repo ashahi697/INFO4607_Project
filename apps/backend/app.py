@@ -9,6 +9,13 @@ from db import (edit_user_transaction, get_all_events,
                 get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
                 create_user_transaction, edit_user_transaction, delete_user_transaction, 
                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
+from typing import Optional
+from datetime import datetime, date, time
+from db import (edit_user_transaction, get_all_events, 
+                get_calendar_events, create_new_event, delete_user_event,
+                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+                create_user_transaction, edit_user_transaction, delete_user_transaction, 
+                delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
 
@@ -145,6 +152,44 @@ def get_user_budget(userID: str):
 def get_remaining_budget(userID: str):
     try:
         return {"remaining_budget": get_user_remaining_budget(userID= "03d78572-f213-4584-b8b2-e1a34dd1c030")}#userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/set_user_budget")
+def set_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_user_budget")
+def delete_user_budget(userID: str):
+    try:
+        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_user_budget")
+def edit_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
+
+@app.get("/user_budget")
+def get_user_budget(userID: str):
+    try:
+        return {"budget": get_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/user_remaining_budget")
+def get_user_remaining_budget(userID: str):
+    try:
+        return {"remaining_budget": get_user_remaining_budget(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
