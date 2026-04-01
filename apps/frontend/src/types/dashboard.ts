@@ -8,6 +8,6 @@ export type DashboardData = {
   };
   heatmap: { date: string; level: number }[];
   schedule: { title: string; start: string; end: string }[];
-  transactions: { title: string; date: string; amount: number; category: string }[];
+  transactions: { title: string; date: string; amount: number }[];
   tasks: { title: string; priority: string; due: string; completed: boolean }[];
 };

@@ -1,6 +1,14 @@
 from uuid import UUID
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime, date, time
+from db import (edit_user_transaction, get_all_events, 
+                get_calendar_events, create_new_event, delete_user_event,
+                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+                create_user_transaction, edit_user_transaction, delete_user_transaction, 
+                delete_user_transaction, get_user_remaining_budget, get_user_budget)
 from typing import Optional
 from datetime import datetime, date, time
 from db import (edit_user_transaction, get_all_events, 
@@ -10,6 +18,14 @@ from db import (edit_user_transaction, get_all_events,
                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class EventData(BaseModel):
     title: str
@@ -32,7 +48,6 @@ class TransactionData(BaseModel):
     note: Optional[str] = None
 
     account_id: Optional[UUID] = None
-    category_id: Optional[UUID] = None
 
     positive: bool = False
 
@@ -41,9 +56,9 @@ def health():
     return {"ok": True}
 
 @app.get("/events")
-def events():
+def events(userID: str):
     try:
-        return {"data": get_all_events()}
+        return {"data": get_all_events(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -120,6 +135,44 @@ def delete_transaction(userID: str, transaction_id: str):
 def edit_transaction(userID: str, transaction_id: str, transactionData: TransactionData):
     try:
         return {"message": edit_user_transaction(userID=userID, txn_id=transaction_id, transactionData=transactionData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
+
+@app.get("/user_budget")
+def get_user_budget(userID: str):
+    try:
+        return {"budget": get_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/user_remaining_budget")
+def get_remaining_budget(userID: str):
+    try:
+        return {"remaining_budget": get_user_remaining_budget(userID= "03d78572-f213-4584-b8b2-e1a34dd1c030")}#userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/set_user_budget")
+def set_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_user_budget")
+def delete_user_budget(userID: str):
+    try:
+        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_user_budget")
+def edit_user_budget(userID: str, budget: float):
+    try:
+        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
