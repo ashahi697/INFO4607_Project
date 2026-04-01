@@ -1,19 +1,30 @@
 import "./App.css";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/app-shell/Sidebar";
 import Topbar from "./components/app-shell/Topbar";
-import DashboardPage from "./components/dashboard/DashboardPage";
+import Dashboard from "./components/dashboard/DashboardPage";
+import Financial from "./components/pages/Financial";
+import Productivity from "./components/pages/Productivity";
+import Calendar from "./components/pages/Calendar";
 
 function App() {
   return (
-    <div style={{ display: "flex", height: "100vh" }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-        <Topbar />
-        <main style={{ flex: 1, overflow: "auto", background: "#f5f5f5", padding: "24px" }}>
-          <DashboardPage />
-        </main>
+    <BrowserRouter>
+      <div className="flex min-h-screen bg-[#f5f6f8] text-gray-900">
+        <Sidebar />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <Topbar />
+          <main className="flex-1 overflow-auto p-6">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/financial" element={<Financial />} />
+              <Route path="/productivity" element={<Productivity />} />
+              <Route path="/calendar" element={<Calendar />} />
+            </Routes>
+          </main>
+        </div>
       </div>
-    </div>
+    </BrowserRouter>
   );
 }
 

@@ -1,61 +1,44 @@
 import React from "react";
+import { NavLink } from "react-router-dom";
 
-const navSections = [
-  {
-    title: "Dashboard",
-    items: ["Overview", "Analytics"],
-  },
-  {
-    title: "Financial",
-    items: ["Accounts", "Transactions", "Invoices", "Budget"],
-  },
-  {
-    title: "Productivity",
-    items: ["Tasks", "Projects", "Notes"],
-  },
-  {
-    title: "Calendar",
-    items: ["My Calendar", "Meetings", "Reminders"],
-  },
+const navItems = [
+  { label: "Dashboard", path: "/", icon: "🏠" },
+  { label: "Financial", path: "/financial", icon: "💳" },
+  { label: "Productivity", path: "/productivity", icon: "✅" },
+  { label: "Calendar", path: "/calendar", icon: "📅" },
 ];
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 h-screen bg-gray-100 border-r flex flex-col justify-between">
-      
-      <div>
-        <div className="p-4 font-bold text-lg">ProLifiq</div>
+    <aside className="flex w-64 flex-col border-r border-gray-200 bg-white px-4 py-5">
+      <div className="mb-6 text-lg font-semibold text-gray-900">ProLifiq</div>
 
-        <div className="px-4 pb-4">
-          <button className="w-full bg-gray-700 text-white py-2 rounded">
-            + Quick Add
-          </button>
-        </div>
-
-        <nav className="space-y-6 px-4">
-          {navSections.map((section) => (
-            <div key={section.title}>
-              <div className="text-xs text-gray-500 uppercase mb-2">
-                {section.title}
-              </div>
-
-              <ul className="space-y-1">
-                {section.items.map((item) => (
-                  <li key={item}>
-                    <button className="w-full text-left px-2 py-1 rounded hover:bg-gray-200">
-                      {item}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </nav>
+      <div className="mb-6">
+        <button className="w-full rounded-lg bg-gray-800 px-4 py-2 text-white transition hover:bg-gray-700">
+          + Quick Add
+        </button>
       </div>
 
-      <div className="p-4 text-sm text-gray-500">
-        ⚙ Settings
-      </div>
+      <nav className="space-y-2">
+        {navItems.map((item) => (
+          <NavLink
+            key={item.label}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
+                isActive
+                  ? "bg-gray-100 font-semibold text-gray-900"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`
+            }
+          >
+            <span className="text-base">{item.icon}</span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="mt-auto pt-8 text-sm text-gray-500">⚙ Settings</div>
     </aside>
   );
 }
