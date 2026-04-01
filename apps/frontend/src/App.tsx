@@ -3,9 +3,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/app-shell/Sidebar";
 import Topbar from "./components/app-shell/Topbar";
 import Dashboard from "./components/dashboard/DashboardPage";
-import Financial from "./components/pages/Financial";
-import Productivity from "./components/pages/Productivity";
-import Calendar from "./components/pages/Calendar";
+import Financial from "./components/pages/financial";
+import Productivity from "./components/pages/productivity";
+import Calendar from "./components/pages/calendar";
 
 function App() {
   return (
