@@ -1,9 +1,14 @@
 import React from 'react';
+import { useEffect, useState } from "react";
+import AddTransactionModal from "./AddTransactionModal";
 
 type Stat = { label: string; value: string; delta?: string };
-type ScheduleItem = { title: string; time: string };
-type Transaction = { title: string; date: string; amount: string; category: string };
+type ScheduleItem = { title: string; start_time?: string; end_time?: string, date?: string };
+type Transaction = { title: string; date: string; amount: string };
 type Task = { title: string; priority: "High" | "Medium" | "Low"; due: string; completed?: boolean };
+
+const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030"; // TODO: get from auth context
+
 
 const stats: Stat[] = [
   { label: "Total Balance", value: "$24,580.00", delta: "+12.5%" },
@@ -12,19 +17,20 @@ const stats: Stat[] = [
   { label: "Tasks Completed", value: "24/36", delta: "12 pending" },
 ];
 
-const schedule: ScheduleItem[] = [
+/*const schedule: ScheduleItem[] = [
   { title: "Team Meeting", time: "9:00 AM – 10:00 AM" },
   { title: "Client Presentation", time: "2:00 PM – 3:30 PM" },
   { title: "Project Review", time: "4:30 PM – 5:30 PM" },
-];
+];*/
 
-const transactions: Transaction[] = [
-  { title: "Amazon Purchase", date: "Jan 15, 2025", amount: "-$89.99", category: "Shopping" },
-  { title: "Salary Deposit", date: "Jan 14, 2025", amount: "+$4,500.00", category: "Income" },
-  { title: "Restaurant Bill", date: "Jan 13, 2025", amount: "-$45.50", category: "Food" },
-  { title: "Gas Station", date: "Jan 12, 2025", amount: "-$52.00", category: "Transport" },
-  { title: "Software Subscription", date: "Jan 11, 2025", amount: "-$29.99", category: "Subscription" },
-];
+/*const transactions: Transaction[] = [
+  { title: "Amazon Purchase", date: "Jan 15, 2025", amount: "-$89.99" },
+  { title: "Salary Deposit", date: "Jan 14, 2025", amount: "+$4,500.00" },
+  { title: "Restaurant Bill", date: "Jan 13, 2025", amount: "-$45.50" },
+  { title: "Gas Station", date: "Jan 12, 2025", amount: "-$52.00" },
+  { title: "Software Subscription", date: "Jan 11, 2025", amount: "-$29.99" }, 
+]; */
+
 
 const tasks: Task[] = [
   { title: "Review Q1 financial reports", priority: "High", due: "Jan 20, 2025" },
@@ -124,15 +130,15 @@ function ProductivityHeatmapCard() {
   );
 }
 
-function ScheduleCard() {
+function ScheduleCard({ schedule }: { schedule: ScheduleItem[] }) {
   return (
     <div className="bg-white border rounded-xl overflow-hidden">
-      <PanelHeader title="Today's Schedule" right={<button className="text-sm text-gray-500 hover:text-gray-700">View All</button>} />
+      <PanelHeader title="Upcoming Schedule" right={<button className="text-sm text-gray-500 hover:text-gray-700">View All</button>} />
       <div className="p-5 space-y-4">
-        {schedule.map((item) => (
+        {schedule.slice(0,3).map((item) => (
           <div key={item.title} className="border-l-2 border-gray-300 pl-3">
             <div className="font-medium">{item.title}</div>
-            <div className="text-sm text-gray-500">{item.time}</div>
+            <div className="text-sm text-gray-500">Start: {item.start_time} | End: {item.end_time} | Date: {item.date}</div>
           </div>
         ))}
       </div>
@@ -140,17 +146,40 @@ function ScheduleCard() {
   );
 }
 
-function TransactionsCard() {
+function TransactionsCard({
+  transactions,
+  onAddTransactionClick,
+  }: {
+    transactions: Transaction[];
+    onAddTransactionClick: () => void;
+  })
+  
+{
   return (
     <div className="bg-white border rounded-xl overflow-hidden">
-      <PanelHeader title="Recent Transactions" right={<button className="text-sm text-gray-500 hover:text-gray-700">View All</button>} />
+      <PanelHeader
+        title="Recent Transactions"
+        right={
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onAddTransactionClick}
+              aria-label="Add transaction"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-300 pb-px text-base font-semibold leading-none text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700"
+            >
+              +
+            </button>
+            <button className="text-sm text-gray-500 hover:text-gray-700">View All</button>
+          </div>
+        }
+      />
       <div className="p-5 space-y-4">
-        {transactions.map((t) => (
+        {transactions.slice(0, 5).map((t) => (
           <div key={`${t.title}-${t.date}`} className="flex items-center justify-between">
             <div>
               <div className="font-medium">{t.title}</div>
               <div className="text-sm text-gray-500">
-                {t.date} • {t.category}
+                {t.date}
               </div>
             </div>
             <div className="font-medium">{t.amount}</div>
@@ -184,6 +213,81 @@ function TasksCard() {
 }
 
 export default function DashboardPage() {
+
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
+
+  useEffect(() => {
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(`/api/get_transactions?userID=${userID}`);
+      const data = await res.json();
+
+      const formattedTransactions: Transaction[] = (data.transactions ?? []).map((t: any) => ({
+        title: t.merchant ?? "Unknown Transaction",
+        date: t.txn_date ?? "",
+        amount: `${t.positive ? "+" : "-"}$${Number(t.amount ?? 0).toFixed(2)}`,
+      }));
+
+      setTransactions(formattedTransactions);
+      } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+      }
+    };
+
+
+  const fetchAllEvents = async () => {
+  try {
+    const res = await fetch(`http://localhost:8000/events?userID=${userID}`);
+    const data = await res.json();
+
+    const formatTime = (time: string | null) => {
+      if (!time) return "All day";
+
+      const match = time.match(/^(\d{2}):(\d{2})/);
+      if (!match) return time;
+
+      const hour24 = Number(match[1]);
+      const minute = match[2];
+
+      const suffix = hour24 >= 12 ? "PM" : "AM";
+      const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+      return `${hour12}:${minute} ${suffix}`;
+    };
+
+    const formatDate = (date: string | null) => {
+      if (!date) return "";
+
+      return new Date(date).toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      // Example: "Mar 5, 2026"
+    };
+
+    const formattedSchedule: ScheduleItem[] = (data.data ?? []).map((e: any) => ({
+      title: e.title ?? "Untitled Event",
+      start_time: formatTime(e.start_time),
+      end_time: formatTime(e.end_time),
+      date: formatDate(e.start_date),
+    }));
+
+    setSchedule(formattedSchedule);
+      console.log("formatted schedule:", formattedSchedule);
+    } catch (err) {
+      console.error("Failed to fetch events:", err);
+    }
+  };
+
+  fetchAllEvents();
+  fetchTransactions();
+
+
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -204,14 +308,23 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <ProductivityHeatmapCard />
         </div>
-        <ScheduleCard />
+        <ScheduleCard schedule={schedule}/>
       </div>
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <TransactionsCard />
+        <TransactionsCard
+          transactions={transactions}
+          onAddTransactionClick={() => setIsAddTransactionModalOpen(true)}        />
         <TasksCard />
       </div>
+
+      <AddTransactionModal
+        isOpen={isAddTransactionModalOpen}
+        onClose={() => setIsAddTransactionModalOpen(false)}
+        userID={userID}
+        onTransactionAdded={(newTransaction) => setTransactions((prev) => [newTransaction, ...prev])}
+      />
     </div>
   );
 }

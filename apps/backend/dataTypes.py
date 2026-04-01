@@ -193,7 +193,7 @@ def get_remaining_budget_by_month(transactions, budget):
             budget_by_month[month_year] -= txn["amount"]
     for month_year in budget_by_month:
         budget_by_month[month_year] = budget - budget_by_month[month_year]
-    return budget_by_month
+    return format_remaining_budget(budget_by_month)
 
 def format_remaining_budget(remaining_budget_by_month):
     formatted = []

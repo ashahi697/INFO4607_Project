@@ -1,11 +1,13 @@
 from dataTypes import Calendar, get_remaining_budget_by_month
 from supabase_client import supabase_client
 
-def get_all_events():
+def get_all_events(userID):
     res = (
         supabase_client
         .table("events")   
         .select("*")
+        .eq("user_id", userID)
+        .order("start_date", desc=False)
         .limit(10)
         .execute()
     )
@@ -89,7 +91,7 @@ def get_user_transactions(userID):
         .table("transactions")
         .select("*")
         .eq("user_id", userID)
-        .order("txn_date", desc=False)
+        .order("txn_date", desc=True)
         .execute()
     )
     return res.data
@@ -105,7 +107,6 @@ def create_user_transaction(userID, transactionData):
             "merchant": transactionData.merchant,
             "note": transactionData.note,
             "account_id": transactionData.account_id,
-            "category_id": transactionData.category_id,
             "positive": transactionData.positive
         })
         .execute()
@@ -133,7 +134,6 @@ def edit_user_transaction(userID, txn_id, transactionData):
             "merchant": transactionData.merchant,
             "note": transactionData.note,
             "account_id": transactionData.account_id,
-            "category_id": transactionData.category_id,
             "positive": transactionData.positive
         })
         .eq("user_id", userID)

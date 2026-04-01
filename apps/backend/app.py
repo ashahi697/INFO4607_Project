@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
@@ -10,6 +11,14 @@ from db import (edit_user_transaction, get_all_events,
                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class EventData(BaseModel):
     title: str
@@ -32,7 +41,6 @@ class TransactionData(BaseModel):
     note: Optional[str] = None
 
     account_id: Optional[UUID] = None
-    category_id: Optional[UUID] = None
 
     positive: bool = False
 
@@ -41,9 +49,9 @@ def health():
     return {"ok": True}
 
 @app.get("/events")
-def events():
+def events(userID: str):
     try:
-        return {"data": get_all_events()}
+        return {"data": get_all_events(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -134,9 +142,9 @@ def get_user_budget(userID: str):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/user_remaining_budget")
-def get_user_remaining_budget(userID: str):
+def get_remaining_budget(userID: str):
     try:
-        return {"remaining_budget": get_user_remaining_budget(userID=userID)}
+        return {"remaining_budget": get_user_remaining_budget(userID= "03d78572-f213-4584-b8b2-e1a34dd1c030")}#userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 

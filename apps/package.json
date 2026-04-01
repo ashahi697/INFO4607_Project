@@ -6,7 +6,7 @@
   },
   "scripts": {
     "dev:frontend": "npm --prefix frontend run dev",
-    "dev:backend": "cd backend && conda run -n info4607-backend uvicorn app:app --reload --port 8000",
-    "dev:all": "concurrently -k -n FRONTEND,BACKEND \"npm run dev:frontend\" \"npm run dev:backend\""
+    "dev:backend": "lsof -ti :8000 | xargs kill -9 2>/dev/null; cd backend && conda run -n info4607-backend uvicorn app:app --reload --port 8000",
+    "dev:all": "concurrently --handle-input --kill-others --kill-others-on-fail -n FRONTEND,BACKEND \"npm run dev:frontend\" \"npm run dev:backend\""
   }
 }
