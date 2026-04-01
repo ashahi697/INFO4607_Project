@@ -11,7 +11,7 @@ const navItems = [
 export default function Sidebar() {
   return (
     <aside className="flex w-64 flex-col border-r border-gray-200 bg-white px-4 py-5">
-      <div className="mb-6 text-lg font-semibold text-gray-900">FinHub</div>
+      <div className="mb-6 text-lg font-semibold text-gray-900">ProLifiq</div>
 
       <div className="mb-6">
         <button className="w-full rounded-lg bg-gray-800 px-4 py-2 text-white transition hover:bg-gray-700">
