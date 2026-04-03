@@ -1,6 +1,8 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import QuickAddModal from "../quick-add/QuickAddModal";
 const navItems = [
   { label: "Dashboard", path: "/", icon: "🏠" },
   { label: "Financial", path: "/financial", icon: "💳" },
