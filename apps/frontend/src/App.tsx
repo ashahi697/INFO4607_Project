@@ -7,6 +7,8 @@ import Financial from "./components/pages/financial";
 import Productivity from "./components/pages/productivity";
 import Calendar from "./components/pages/calendar";
 
+export const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030";
+
 function App() {
   return (
     <BrowserRouter>
