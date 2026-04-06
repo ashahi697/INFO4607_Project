@@ -6,7 +6,7 @@ type AddTransactionModalProps = {
   onTransactionAdded: (transaction: Transaction) => void;
 };
 
-type Transaction = { title: string; date: string; amount: string };
+type Transaction = { title: string; date: string; amount: string; id: string };
 
 export default function AddTransactionModal({ isOpen, onClose, userID, onTransactionAdded }: AddTransactionModalProps) {
   const [amount, setAmount] = React.useState("");
@@ -39,10 +39,21 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
         throw new Error("Failed to add transaction");
       }
 
+      const responseData = await response.json();
+      const createdTransaction = Array.isArray(responseData?.message)
+        ? responseData.message[0]
+        : responseData?.message;
+      const createdId = createdTransaction?.txn_id;
+
+      if (!createdId) {
+        throw new Error("Missing txn_id in create_transaction response");
+      }
+
       const newTransaction = {
         title: merchant || "Unknown Transaction",
         date,
         amount: `${type === "income" ? "+" : "-"}$${Number(amount).toFixed(2)}`,
+        id: createdId,
       };
       
       onTransactionAdded(newTransaction);
