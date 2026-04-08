@@ -24,6 +24,12 @@ export default function Sidebar() {
   + Quick Add
 </button>
       </div>
+      
+  {isQuickAddOpen && (
+    <div className="mt-4 rounded-lg bg-gray-100 p-3 text-sm">
+      Modal is working
+    </div>
+)}
 
       <nav className="space-y-2">
         {navItems.map((item) => (
