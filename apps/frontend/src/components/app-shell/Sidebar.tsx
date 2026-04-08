@@ -26,9 +26,7 @@ export default function Sidebar() {
       </div>
       
   {isQuickAddOpen && (
-    <div className="mt-4 rounded-lg bg-gray-100 p-3 text-sm">
-      Modal is working
-    </div>
+    <QuickAddModal onClose={() => setIsQuickAddOpen(false)} />
 )}
 
       <nav className="space-y-2">
