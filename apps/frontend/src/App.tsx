@@ -34,7 +34,11 @@ const handleAddSchedule = async (newSchedule: any) => {
   return (
     <BrowserRouter>
       <div className="flex min-h-screen bg-[#f5f6f8] text-gray-900">
-        <Sidebar />
+        <Sidebar
+        userID={userID}
+        onTaskAdded={handleAddTask}
+        onScheduleAdded={handleAddSchedule}
+      />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
           <main className="flex-1 overflow-auto p-6">
