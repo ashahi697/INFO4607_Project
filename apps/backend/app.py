@@ -213,3 +213,51 @@ def edit_user_budget(userID: str, budget: float):
         return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+  ## I tried this budget endpoint to test:
+  from fastapi import FastAPI, HTTPException
+
+app = FastAPI()
+
+
+@app.get("/users/{userID}/budget")
+def get_budget(userID: str):
+    try:
+        return {"budget": get_user_budget(userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/users/{userID}/budget/remaining")
+def get_remaining_budget(userID: str):
+    try:
+        return {"remaining_budget": get_user_remaining_budget(userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/users/{userID}/budget")
+def set_budget(userID: str, budget: float):
+    try:
+        set_user_budget(userID, budget)
+        return {"message": "budget set"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/users/{userID}/budget")
+def edit_budget(userID: str, budget: float):
+    try:
+        edit_user_budget(userID, budget)
+        return {"message": "budget updated"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/users/{userID}/budget")
+def delete_budget(userID: str):
+    try:
+        delete_user_budget(userID)
+        return {"message": "budget deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
