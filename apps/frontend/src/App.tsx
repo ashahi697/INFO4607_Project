@@ -47,6 +47,7 @@ const handleAddSchedule = async (newSchedule: any) => {
       <div className="flex min-h-screen bg-[#f5f6f8] text-gray-900">
         <Sidebar
         userID={userID}
+        onTransactionAdded={handleAddTransaction}
         onTaskAdded={handleAddTask}
         onScheduleAdded={handleAddSchedule}
       />
@@ -55,9 +56,9 @@ const handleAddSchedule = async (newSchedule: any) => {
           <main className="flex-1 overflow-auto p-6">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/financial" element={<Financial />} />
-              <Route path="/productivity" element={<Productivity />} />
-              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/financial" element={<Financial transactions={transactions} />} />
+              <Route path="/productivity" element={<Productivity tasks={tasks} />} />
+              <Route path="/calendar" element={<Calendar scheduleItems={scheduleItems} />} />
             </Routes>
           </main>
         </div>
