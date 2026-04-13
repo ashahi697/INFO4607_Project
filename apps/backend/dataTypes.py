@@ -1,5 +1,7 @@
 import calendar
 from datetime import date, datetime
+# from db import get_user_productivity_date_range
+from productivity_heatmap import create_productivity_heatmap
 
 #########################################################
 #########################################################
@@ -255,3 +257,26 @@ def get_transactions_for_budget_period(transactions, user_id, start_date, end_da
     return filtered
     user_periods.sort(key=lambda p: _to_date(p.get("start_date")))
     return user_periods
+
+
+
+#########################################################
+#########################################################
+# End Budget Helpers
+#########################################################
+#########################################################
+
+
+#########################################################
+#########################################################
+# Start task Helpers
+#########################################################
+#########################################################
+
+def calculate_prod_score(tasks):
+    score = sum(task["priority_weight"] for task in tasks) * 5
+    return score
+
+def get_user_productivity_map(userID, prod_scores):
+    return create_productivity_heatmap(prod_scores)
+

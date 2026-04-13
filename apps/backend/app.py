@@ -8,14 +8,16 @@ from db import (edit_user_transaction, get_all_events,
                 get_calendar_events, create_new_event, delete_user_event,
                 get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
                 create_user_transaction, edit_user_transaction, delete_user_transaction, 
-                delete_user_transaction, get_user_remaining_budget, get_user_budget)
-from typing import Optional
-from datetime import datetime, date, time
-from db import (edit_user_transaction, get_all_events, 
-                get_calendar_events, create_new_event, delete_user_event,
-                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
-                create_user_transaction, edit_user_transaction, delete_user_transaction, 
-                delete_user_transaction, get_user_remaining_budget, get_user_budget)
+                delete_user_transaction, get_user_remaining_budget, get_user_budget, get_user_tasks,
+                create_user_task, edit_user_task, delete_user_task, complete_user_task, incomplete_user_task,
+                get_user_productivity, create_user_productivity, edit_user_productivity, delete_user_productivity, get_user_productivity_date_range)
+# from typing import Optional
+# from datetime import datetime, date, time
+# from db import (edit_user_transaction, get_all_events, 
+#                 get_calendar_events, create_new_event, delete_user_event,
+#                 get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+#                 create_user_transaction, edit_user_transaction, delete_user_transaction, 
+#                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
 
@@ -50,6 +52,19 @@ class TransactionData(BaseModel):
     account_id: Optional[UUID] = None
 
     positive: bool = False
+
+class TaskData(BaseModel):
+    task_name: str
+    priority_weight: int
+    created_at: Optional[str] = None
+    completed_date: Optional[str] = None
+    name: Optional[str] = None
+
+class ProductivityData(BaseModel):
+    dates: str
+    task_weight: Optional[int] = None
+    focused_time: Optional[int] = None
+    tasks_completed: Optional[int] = None
 
 @app.get("/health")
 def health():
@@ -211,5 +226,91 @@ def delete_user_budget(userID: str):
 def edit_user_budget(userID: str, budget: float):
     try:
         return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+
+####### Task Endpoints #######
+
+
+@app.get("/get_tasks")
+def get_all_tasks(userID: str):
+    try:
+        return {"tasks": get_user_tasks(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/create_task")
+def create_task(userID: str, taskData: TaskData):
+    try:
+        return {"message": create_user_task(userID=userID, taskData=taskData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_task")
+def delete_task(userID: str, task_id: int):
+    try:
+        return {"message": delete_user_task(userID=userID, task_id=task_id)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_task")
+def edit_task(userID: str, task_id: int, taskData: TaskData):
+    try:
+        return {"message": edit_user_task(userID=userID, task_id=task_id, taskData=taskData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/complete_task")
+def complete_task(userID: str, task_id: int, completed_date: str):
+    try:
+        return {"message": complete_user_task(userID=userID, task_id=task_id, completed_date=completed_date)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/incomplete_task")
+def incomplete_task(userID: str, task_id: int):
+    try:
+        return {"message": incomplete_user_task(userID=userID, task_id=task_id)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+####### Productivity Endpoints #######
+
+
+@app.get("/get_productivity")
+def get_productivity(userID: str):
+    try:
+        return {"productivity": get_user_productivity(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/create_productivity")
+def create_productivity(userID: str, productivityData: ProductivityData):
+    try:
+        return {"message": create_user_productivity(userID=userID, productivityData=productivityData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_productivity")
+def delete_productivity(userID: str, productivity_date: str):
+    try:
+        return {"message": delete_user_productivity(userID=userID, productivity_date=productivity_date)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_productivity")
+def edit_productivity(userID: str, productivity_date: str, productivityData: ProductivityData):
+    try:
+        return {"message": edit_user_productivity(userID=userID, productivity_date=productivity_date, productivityData=productivityData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/productivity_heatmap")
+def productivity_heatmap(userID: str, start_date: str, end_date: str):
+    try:
+        return {"heatmap": get_user_productivity_date_range(userID=userID, start_date=start_date, end_date=end_date)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
