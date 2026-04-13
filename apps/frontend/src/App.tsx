@@ -56,9 +56,9 @@ const handleAddSchedule = async (newSchedule: any) => {
           <main className="flex-1 overflow-auto p-6">
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/financial" element={<Financial transactions={transactions} />} />
-              <Route path="/productivity" element={<Productivity tasks={tasks} />} />
-              <Route path="/calendar" element={<Calendar scheduleItems={scheduleItems} />} />
+              <Route path="/financial" element={<Financial />} />
+              <Route path="/productivity" element={<Productivity />} />
+              <Route path="/calendar" element={<Calendar />} />
             </Routes>
           </main>
         </div>
