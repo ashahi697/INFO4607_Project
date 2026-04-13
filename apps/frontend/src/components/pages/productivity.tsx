@@ -1,21 +1,3 @@
-import { useEffect, useState } from "react";
-import { userID } from "../../App";
-import AddTaskModal from "../app-shell/AddTaskModal";
-
-<button
-  onClick={() => setIsAddTaskModalOpen(true)}
-  className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
->
-  Add Task
-</button>
-
-<AddTaskModal
-  isOpen={isAddTaskModalOpen}
-  onClose={() => setIsAddTaskModalOpen(false)}
-  userID={userID}
-  onTaskAdded={handleTaskAdded}
-/>
-
 export default function ProductivityPage() {
   type Task = {
     task_id?: string;
@@ -57,3 +39,30 @@ export default function ProductivityPage() {
   const handleTaskAdded = (newTask: Task) => {
     setTasks((prev) => [newTask, ...prev]);
   };
+
+  return (
+    <div className="space-y-6">
+      {/* HEADER + BUTTON */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Productivity</h1>
+
+        <button
+          onClick={() => setIsAddTaskModalOpen(true)}
+          className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
+        >
+          Add Task
+        </button>
+      </div>
+
+      {/* MODAL */}
+      <AddTaskModal
+        isOpen={isAddTaskModalOpen}
+        onClose={() => setIsAddTaskModalOpen(false)}
+        userID={userID}
+        onTaskAdded={handleTaskAdded}
+      />
+
+      {/* TASK LIST (your existing UI below) */}
+    </div>
+  );
+}
