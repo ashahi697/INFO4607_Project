@@ -304,8 +304,9 @@ def process_budget_summary(budgets_df, budget_periods_df, transactions_df, user_
         "remaining_budget": remaining_budget,
         "percent_used": percent_used,
         "over_budget": over_budget
-    user_periods.sort(key=lambda p: _to_date(p.get("start_date")))
-    return user_periods
+    }
+    # user_periods.sort(key=lambda p: _to_date(p.get("start_date")))
+    # return user_periods
 
 
 
