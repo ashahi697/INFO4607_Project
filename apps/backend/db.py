@@ -172,4 +172,15 @@ def get_user_remaining_budget(userID):
     budget = res1.data[0]["amount"] if res1.data else 0
     transactions = res2.data
     return get_remaining_budget_by_month(transactions, budget)
-    
+
+#did in class 4/13/2026
+def user_budgets{
+    res1 = (
+        supabase_client
+        .table("budgets")
+        .select("*")
+        .eq("user_id", userID)
+        .execute()
+    )
+
+
