@@ -6,10 +6,31 @@ import Dashboard from "./components/dashboard/DashboardPage";
 import Financial from "./components/pages/financial";
 import Productivity from "./components/pages/productivity";
 import Calendar from "./components/pages/calendar";
+import { useState } from "react";
 
 export const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030";
 
 function App() {
+  const [tasks, setTasks] = useState([
+  { title: "Prepare client presentation", priority: "Medium", due: "Jan 18, 2025", completed: false, id: "1" },
+]);
+
+const [scheduleItems, setScheduleItems] = useState([
+  { title: "Team Meeting", day: "Monday", time: "9:00 AM – 10:00 AM", id: "1" },
+]);
+const handleAddTask = async (newTask: any) => {
+  setTasks((prev) => [
+    ...prev,
+    { ...newTask, id: Date.now().toString(), completed: false }
+  ]);
+};
+
+const handleAddSchedule = async (newSchedule: any) => {
+  setScheduleItems((prev) => [
+    ...prev,
+    { ...newSchedule, id: Date.now().toString() }
+  ]);
+};
   return (
     <BrowserRouter>
       <div className="flex min-h-screen bg-[#f5f6f8] text-gray-900">
