@@ -255,6 +255,55 @@ def get_transactions_for_budget_period(transactions, user_id, start_date, end_da
             filtered.append(txn)
 
     return filtered
+
+    # finds user planned budget
+# users latest budget period 
+# filtering the transactions to only budget periods 
+# adding of the total spending amount'
+# calculating the remaining budget 
+# calcultaing the percenrtage of the budget used 
+# checking wheter the user is over the budget 
+
+def process_budget_summary(budgets_df, budget_periods_df, transactions_df, user_id):
+    budget = get_user_budget(budgets_df, user_id)
+    period = get_latest_budget_period(budget_periods_df, user_id)
+
+    if budget is None or period is None:
+        return None
+
+    period_transactions = get_transactions_for_budget_period(
+        transactions_df,
+        user_id,
+        period["start_date"],
+        period["end_date"]
+    )
+
+    if period_transactions.empty:
+        total_spent = 0.0
+    else:
+        # choose ONE rule and stay consistent across the file
+        # Rule below assumes expenses are negative amounts
+        
+        expenses = period_transactions[period_transactions["amount"] < 0]
+        total_spent = abs(expenses["amount"].sum())
+
+        # If your CSV uses positive=False instead, use this instead:
+        # expenses = period_transactions[period_transactions["positive"] == False]
+        # total_spent = expenses["amount"].sum()
+
+    planned_amount = float(budget["planned_amount"])
+    remaining_budget = planned_amount - total_spent
+    percent_used = 0 if planned_amount == 0 else (total_spent / planned_amount) * 100
+    over_budget = total_spent > planned_amount
+
+    return {
+        "user_id": user_id,
+        "period_name": period["period_name"],
+        "planned_amount": planned_amount,
+        "total_spent": total_spent,
+        "remaining_budget": remaining_budget,
+        "percent_used": percent_used,
+        "over_budget": over_budget
     user_periods.sort(key=lambda p: _to_date(p.get("start_date")))
     return user_periods
 
