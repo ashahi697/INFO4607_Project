@@ -1,9 +1,10 @@
 from uuid import UUID
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from db import get_all_events, get_calendar_events, create_new_event, delete_user_event, get_calendar_user_event, edit_calendar_user_event
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
+
 
 app = FastAPI()
 
@@ -73,5 +74,91 @@ def edit_event(event: EventData, userID: str, event_id: str):
         return {"message": edit_calendar_user_event(userID=userID, event_id=event_id, eventData=event)}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# Budget endpoints 
+
+
+# Budget endpoints are structured below to what we are calling 
+from db import (get_user_budget as db_get_user_budget,  get_user_remaining_budget as db_get_user_remaining_budget, get_user_budget_view as db_get_user_budget_view,
+    set_user_budget as db_set_user_budget, edit_user_budget as db_edit_user_budget, delete_user_budget as db_delete_user_budget,)
+
+
+class BudgetPayload(BaseModel):
+    budget: float
+
+
+@app.get("/users/{userID}/budget")
+def get_budget_endpoint(userID: str):
+    try:
+        budget = db_get_user_budget(userID)
+        return {"budget": budget}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/users/{userID}/budget/remaining")
+def get_remaining_budget_endpoint(
+    userID: str,
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    view_type: str = Query("month")
+):
+    try:
+        remaining_budget = db_get_user_remaining_budget(
+            userID=userID,
+            start_date=start_date,
+            end_date=end_date,
+            view_type=view_type
+        )
+        return {"remaining_budget": remaining_budget}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/users/{userID}/budget/view")
+def get_budget_view_endpoint(
+    userID: str,
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    view_type: str = Query("month")
+):
+    try:
+        budget_view = db_get_user_budget_view(
+            userID=userID,
+            start_date=start_date,
+            end_date=end_date,
+            view_type=view_type
+        )
+        return {"budget_view": budget_view}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/users/{userID}/budget")
+def set_budget_endpoint(userID: str, payload: BudgetPayload):
+    try:
+        budget = db_set_user_budget(userID, payload.budget)
+        return {"message": "budget set", "budget": budget}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.put("/users/{userID}/budget")
+def edit_budget_endpoint(userID: str, payload: BudgetPayload):
+    try:
+        budget = db_edit_user_budget(userID, payload.budget)
+        return {"message": "budget updated", "budget": budget}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/users/{userID}/budget")
+def delete_budget_endpoint(userID: str):
+    try:
+        deleted = db_delete_user_budget(userID)
+        return {"message": "budget deleted", "deleted": deleted}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
