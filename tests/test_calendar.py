@@ -375,67 +375,70 @@ def test_create_edit_delete_task():
 
 
 def test_productivity_score_updates_when_tasks_completed():
-    target_date = "2026-04-15"
+    target_date = date.fromordinal(date.today().toordinal() + 4000).isoformat()
     created_task_ids = []
     priorities = [1, 2, 3, 4]
 
-    # Create several tasks on the same day
-    for i, priority in enumerate(priorities):
-        new_task = {
-            "task_name": f"Prod Test Task {i+1}",
-            "priority_weight": priority,
-            "created_at": target_date,
-            "completed_date": None,
-            "name": "Prod Test User",
-        }
-        r = client.post("/create_task", json=new_task, params={"userID": test_user_id})
-        assert r.status_code == 200
-        payload = r.json()
-        task_id = int(payload["message"][0]["id"])
-        created_task_ids.append(task_id)
+    def get_score_for_date() -> int:
+        r_prod = client.get("/get_productivity", params={"userID": test_user_id})
+        assert r_prod.status_code == 200
+        rows = r_prod.json().get("productivity", [])
+        matching = [row for row in rows if str(row.get("dates", "")).startswith(target_date)]
+        if not matching:
+            return 0
+        return int(matching[0]["productivity_score"])
 
-    # Complete all but one
-    for task_id in created_task_ids[:-1]:
-        r = client.put("/complete_task", params={"userID": test_user_id, "task_id": task_id, "completed_date": target_date})
-        assert r.status_code == 200
+    baseline_score = get_score_for_date()
 
-    r_prod_1 = client.get("/get_productivity", params={"userID": test_user_id})
-    assert r_prod_1.status_code == 200
-    productivity_rows_1 = r_prod_1.json().get("productivity", [])
-    row_1 = [row for row in productivity_rows_1 if str(row.get("dates", "")).startswith(target_date)][0]
-    score_after_partial = int(row_1["productivity_score"])
-    assert score_after_partial == (priorities[0] + priorities[1] + priorities[2]) * 5
+    try:
+        # Create several tasks on the same day
+        for i, priority in enumerate(priorities):
+            new_task = {
+                "task_name": f"Prod Test Task {i+1}",
+                "priority_weight": priority,
+                "created_at": target_date,
+                "completed_date": None,
+                "name": "Prod Test User",
+            }
+            r = client.post("/create_task", json=new_task, params={"userID": test_user_id})
+            assert r.status_code == 200
+            payload = r.json()
+            task_id = int(payload["message"][0]["id"])
+            created_task_ids.append(task_id)
 
-    # Complete final task and verify score changes and increases
-    final_task_id = created_task_ids[-1]
-    r2 = client.put("/complete_task", params={"userID": test_user_id, "task_id": final_task_id, "completed_date": target_date})
-    assert r2.status_code == 200
+        # Complete all but one
+        for task_id in created_task_ids[:-1]:
+            r = client.put("/complete_task", params={"userID": test_user_id, "task_id": task_id, "completed_date": target_date})
+            assert r.status_code == 200
 
-    r_prod_2 = client.get("/get_productivity", params={"userID": test_user_id})
-    assert r_prod_2.status_code == 200
-    productivity_rows_2 = r_prod_2.json().get("productivity", [])
-    row_2 = [row for row in productivity_rows_2 if str(row.get("dates", "")).startswith(target_date)][0]
-    score_after_full = int(row_2["productivity_score"])
-    assert score_after_full == (priorities[0] + priorities[1] + priorities[2] + priorities[3]) * 5
-    assert score_after_full > score_after_partial
+        score_after_partial = get_score_for_date()
+        assert score_after_partial - baseline_score == (priorities[0] + priorities[1] + priorities[2]) * 5
 
-    # Mark one completed task as incomplete and verify score goes down
-    task_to_revert = created_task_ids[0]
-    reverted_priority = priorities[0]
-    r3 = client.put("/incomplete_task", params={"userID": test_user_id, "task_id": task_to_revert})
-    assert r3.status_code == 200
+        # Complete final task and verify score changes and increases
+        final_task_id = created_task_ids[-1]
+        r2 = client.put("/complete_task", params={"userID": test_user_id, "task_id": final_task_id, "completed_date": target_date})
+        assert r2.status_code == 200
 
-    r_prod_3 = client.get("/get_productivity", params={"userID": test_user_id})
-    assert r_prod_3.status_code == 200
-    productivity_rows_3 = r_prod_3.json().get("productivity", [])
-    row_3 = [row for row in productivity_rows_3 if str(row.get("dates", "")).startswith(target_date)][0]
-    score_after_revert = int(row_3["productivity_score"])
-    assert score_after_revert == score_after_full - (reverted_priority * 5)
-    assert score_after_revert < score_after_full
+        score_after_full = get_score_for_date()
+        assert score_after_full - baseline_score == (priorities[0] + priorities[1] + priorities[2] + priorities[3]) * 5
+        assert score_after_full > score_after_partial
 
-    # cleanup created tasks
-    for task_id in created_task_ids:
-        client.delete("/delete_task", params={"userID": test_user_id, "task_id": task_id})
+        # Mark one completed task as incomplete and verify score goes down
+        task_to_revert = created_task_ids[0]
+        reverted_priority = priorities[0]
+        r3 = client.put("/incomplete_task", params={"userID": test_user_id, "task_id": task_to_revert})
+        assert r3.status_code == 200
+
+        score_after_revert = get_score_for_date()
+        assert score_after_revert == score_after_full - (reverted_priority * 5)
+        assert score_after_revert < score_after_full
+    finally:
+        for task_id in created_task_ids:
+            client.delete("/delete_task", params={"userID": test_user_id, "task_id": task_id})
+        client.delete(
+            "/delete_productivity",
+            params={"userID": test_user_id, "productivity_date": target_date}
+        )
 
 
 def test_create_edit_delete_productivity():
