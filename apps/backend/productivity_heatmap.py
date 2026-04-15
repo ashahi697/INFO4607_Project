@@ -64,7 +64,7 @@ def create_productivity_heatmap(prod_scores):
 
         # Standard Mon-Sun order
         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        pivot = pivot.reindex([d for d in day_order if d in pivot.index])
+        pivot = pivot.reindex(day_order).fillna(0)
 
         # 5. THE "PROLIFIQ" HEATMAP COLORS
         heat_colors = [

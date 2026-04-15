@@ -335,6 +335,14 @@ def get_user_productivity_date_range(userID, start_date, end_date):
         scores_by_day[day] = row["productivity_score"]
     print(f"[prod_range] unique_days={len(scores_by_day)}")
 
+    current_day = datetime.fromisoformat(start_date_only).date()
+    last_day = datetime.fromisoformat(end_date_only).date()
+    while current_day <= last_day:
+        day_str = current_day.strftime("%Y-%m-%d")
+        if day_str not in scores_by_day:
+            scores_by_day[day_str] = 0
+        current_day += timedelta(days=1)
+
     formatted_scores = []
     for day in sorted(scores_by_day.keys()):
         formatted_scores.append({
