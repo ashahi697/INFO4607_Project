@@ -1,9 +1,11 @@
 from uuid import UUID
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
+from pathlib import Path
 from db import (edit_user_transaction, get_all_events, 
                 get_calendar_events, create_new_event, delete_user_event,
                 get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
@@ -20,6 +22,10 @@ from db import (edit_user_transaction, get_all_events,
 #                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
+
+generated_dir = Path(__file__).resolve().parent / "generated"
+generated_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/generated", StaticFiles(directory=generated_dir), name="generated")
 
 app.add_middleware(
     CORSMiddleware,
