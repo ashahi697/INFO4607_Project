@@ -2,6 +2,7 @@ import calendar
 from datetime import date, datetime
 # from db import get_user_productivity_date_range
 from productivity_heatmap import create_productivity_heatmap
+from taskshelper import process_user_day
 
 #########################################################
 #########################################################
@@ -669,8 +670,39 @@ def format_remaining_budget(remaining_budget_by_month):
 ################################################################################
 
 def calculate_prod_score(tasks):
-    score = sum(task["priority_weight"] for task in tasks) * 5
-    return score
+    """
+    Backward-compatible scorer used by db.py.
+    Supports:
+    - list[dict] task rows with `priority_weight` (current DB flow/tests)
+    - helper-style rows with `priority`/`effort` (taskshelper flow)
+    """
+    rows = tasks.data if hasattr(tasks, "data") else tasks
+    if not rows:
+        return 0
+
+    if isinstance(rows, list) and all(isinstance(task, dict) and "priority_weight" in task for task in rows):
+        return sum(int(task.get("priority_weight") or 0) for task in rows) * 5
+
+    try:
+        class _Rows:
+            def __init__(self, data):
+                self.data = data
+
+        normalized_rows = []
+        for task in rows:
+            if not isinstance(task, dict):
+                continue
+            normalized_rows.append({
+                "priority": task.get("priority", "Low"),
+                "effort": task.get("effort", "Low"),
+            })
+
+        if not normalized_rows:
+            return 0
+
+        return int(process_user_day(_Rows(normalized_rows)))
+    except Exception:
+        return 0
 
 def get_user_productivity_map(userID, prod_scores):
     return create_productivity_heatmap(prod_scores)

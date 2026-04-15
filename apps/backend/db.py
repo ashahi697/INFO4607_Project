@@ -209,6 +209,16 @@ def create_user_task(userID, taskData):
     return res.data
 
 def delete_user_task(userID, task_id):
+    existing_task = (
+        supabase_client
+        .table("tasks")
+        .select("completed_date")
+        .eq("uuid", userID)
+        .eq("id", task_id)
+        .execute()
+    )
+    old_completed_date = existing_task.data[0]["completed_date"] if existing_task.data else None
+
     res = (
         supabase_client
         .table("tasks")
@@ -217,9 +227,23 @@ def delete_user_task(userID, task_id):
         .eq("id", task_id)
         .execute()
     )
+
+    sync_daily_productivity_score(userID, old_completed_date)
+
     return res.data
 
 def edit_user_task(userID, task_id, taskData):
+    existing_task = (
+        supabase_client
+        .table("tasks")
+        .select("completed_date")
+        .eq("uuid", userID)
+        .eq("id", task_id)
+        .execute()
+    )
+    old_completed_date = existing_task.data[0]["completed_date"] if existing_task.data else None
+    new_completed_date = _to_date_only(taskData.completed_date)
+
     res = (
         supabase_client
         .table("tasks")
@@ -227,13 +251,18 @@ def edit_user_task(userID, task_id, taskData):
             "task_name": taskData.task_name,
             "priority_weight": taskData.priority_weight,
             "created_at": taskData.created_at,
-            "completed_date": _to_date_only(taskData.completed_date),
+            "completed_date": new_completed_date,
             "name": taskData.name,
         })
         .eq("uuid", userID)
         .eq("id", task_id)
         .execute()
     )
+
+    sync_daily_productivity_score(userID, new_completed_date)
+    if old_completed_date and old_completed_date != new_completed_date:
+        sync_daily_productivity_score(userID, old_completed_date)
+
     return res.data
 
 def complete_user_task(userID, task_id, completed_date):

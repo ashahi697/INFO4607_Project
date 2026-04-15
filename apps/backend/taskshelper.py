@@ -6,10 +6,10 @@ from supabase import create_client
 
 
 # --- HELPER 1: DATA CONNECTION ---
-def get_supabase_client():
-    url = "https://nhurxywtrrajauwqnkut.supabase.co"
-    key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odXJ4eXd0cnJhamF1d3Fua3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzOTQ4MDgsImV4cCI6MjA4NTk3MDgwOH0.MGc0XNthuZt5r_H7vRS7N0m75sNuh7PX40HxkRpEMY0"
-    return create_client(url, key)
+# def get_supabase_client():
+#     url = "https://nhurxywtrrajauwqnkut.supabase.co"
+#     key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5odXJ4eXd0cnJhamF1d3Fua3V0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzOTQ4MDgsImV4cCI6MjA4NTk3MDgwOH0.MGc0XNthuZt5r_H7vRS7N0m75sNuh7PX40HxkRpEMY0"
+#     return create_client(url, key)
 
 # 1. The Weighting Engine
 # In a productivity part, not all tasks are equal. A helper function can calculate a "weighted score" based on priority and effort.
@@ -55,9 +55,9 @@ def get_priority_queue(tasks):
 # How these fit into your Backend
 # When you combine these helpers, your main execution flow looks clean and professional:
 
-def process_user_day(uuid, date):
+def process_user_day(raw_tasks):
     # 1. Fetch raw tasks from Supabase
-    raw_tasks = supabase.table("tasks").select("*").eq("uuid", uuid).eq("created_at", date).execute()
+    # raw_tasks = supabase.table("tasks").select("*").eq("uuid", uuid).eq("created_at", date).execute()
 
     # 2. Helper: Calculate value for each task
     for task in raw_tasks.data:
@@ -67,8 +67,4 @@ def process_user_day(uuid, date):
     daily_score = normalize_daily_score(raw_tasks.data)
 
     # 4. Upload to the 'productivity' table for the Heatmap to read
-    supabase.table("productivity").insert({
-        "uuid": uuid,
-        "dates": date,
-        "productivity_score": daily_score
-    }).execute()
+    return daily_score
