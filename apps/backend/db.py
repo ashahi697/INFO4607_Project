@@ -456,7 +456,7 @@ def edit_user_productivity(userID, productivity_date, productivityData):
 
 
 #did in class 4/13/2026
-def user_budgets:
+def user_budgets(userID):
     res1 = (
         supabase_client
         .table("budgets")
