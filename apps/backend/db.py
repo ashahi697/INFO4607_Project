@@ -452,3 +452,16 @@ def edit_user_productivity(userID, productivity_date, productivityData):
         .execute()
     )
     return res.data
+
+
+
+#did in class 4/13/2026
+def user_budgets:
+    res1 = (
+        supabase_client
+        .table("budgets")
+        .select("*")
+        .eq("user_id", userID)
+        .execute()
+    )
+
