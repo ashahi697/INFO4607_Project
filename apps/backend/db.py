@@ -93,7 +93,7 @@ def edit_calendar_user_event(userID, event_id, eventData):
     )
     return res.data
 
-def get_user_transactions(userID):
+def get_user_transactions_frontend(userID):
     res = (
         supabase_client
         .table("transactions")
