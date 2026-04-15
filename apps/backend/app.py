@@ -177,44 +177,9 @@ def edit_user_budget(userID: str, budget: float):
         raise HTTPException(status_code=400, detail=str(e))
     
 
-## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
 
-@app.get("/user_budget")
-def get_user_budget(userID: str):
-    try:
-        return {"budget": get_user_budget(userID=userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/user_remaining_budget")
-def get_user_remaining_budget(userID: str):
-    try:
-        return {"remaining_budget": get_user_remaining_budget(userID=userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/set_user_budget")
-def set_user_budget(userID: str, budget: float):
-    try:
-        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.delete("/delete_user_budget")
-def delete_user_budget(userID: str):
-    try:
-        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@app.put("/edit_user_budget")
-def edit_user_budget(userID: str, budget: float):
-    try:
-        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-  ## I tried this budget endpoint to test:
+  ## budget endpoint(final), still needs to be implemented in db.py if not done already
   from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
