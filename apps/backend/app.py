@@ -1,23 +1,31 @@
 from uuid import UUID
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date, time
+from pathlib import Path
 from db import (edit_user_transaction, get_all_events, 
                 get_calendar_events, create_new_event, delete_user_event,
-                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, get_user_transactions_frontend,
                 create_user_transaction, edit_user_transaction, delete_user_transaction, 
-                delete_user_transaction, get_user_remaining_budget, get_user_budget)
-from typing import Optional
-from datetime import datetime, date, time
-from db import (edit_user_transaction, get_all_events, 
-                get_calendar_events, create_new_event, delete_user_event,
-                get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
-                create_user_transaction, edit_user_transaction, delete_user_transaction, 
-                delete_user_transaction, get_user_remaining_budget, get_user_budget)
+                delete_user_transaction, get_user_remaining_budget, get_user_budget, get_user_tasks,
+                create_user_task, edit_user_task, delete_user_task, complete_user_task, incomplete_user_task,
+                get_user_productivity, create_user_productivity, edit_user_productivity, delete_user_productivity, get_user_productivity_date_range)
+# from typing import Optional
+# from datetime import datetime, date, time
+# from db import (edit_user_transaction, get_all_events, 
+#                 get_calendar_events, create_new_event, delete_user_event,
+#                 get_calendar_user_event, edit_calendar_user_event, get_user_transactions, 
+#                 create_user_transaction, edit_user_transaction, delete_user_transaction, 
+#                 delete_user_transaction, get_user_remaining_budget, get_user_budget)
 
 app = FastAPI()
+
+generated_dir = Path(__file__).resolve().parent / "generated"
+generated_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/generated", StaticFiles(directory=generated_dir), name="generated")
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +58,19 @@ class TransactionData(BaseModel):
     account_id: Optional[UUID] = None
 
     positive: bool = False
+
+class TaskData(BaseModel):
+    task_name: str
+    priority_weight: int
+    created_at: Optional[str] = None
+    completed_date: Optional[str] = None
+    name: Optional[str] = None
+
+class ProductivityData(BaseModel):
+    dates: str
+    task_weight: Optional[int] = None
+    focused_time: Optional[int] = None
+    tasks_completed: Optional[int] = None
 
 @app.get("/health")
 def health():
@@ -113,7 +134,7 @@ def edit_event(event: EventData, userID: str, event_id: str):
 @app.get("/get_transactions")
 def get_transactions(userID: str):
     try:
-        return {"transactions": get_user_transactions(userID=userID)}
+        return {"transactions": get_user_transactions_frontend(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -139,125 +160,295 @@ def edit_transaction(userID: str, transaction_id: str, transactionData: Transact
         raise HTTPException(status_code=400, detail=str(e))
     
 
-## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
+# ## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
 
-@app.get("/user_budget")
-def get_user_budget(userID: str):
-    try:
-        return {"budget": get_user_budget(userID=userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @app.get("/user_budget")
+# def get_user_budget(userID: str):
+#     try:
+#         return {"budget": get_user_budget(userID=userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/user_remaining_budget")
-def get_remaining_budget(userID: str):
-    try:
-        return {"remaining_budget": get_user_remaining_budget(userID= "03d78572-f213-4584-b8b2-e1a34dd1c030")}#userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @app.get("/user_remaining_budget")
+# def get_remaining_budget(userID: str):
+#     try:
+#         return {"remaining_budget": get_user_remaining_budget(userID= "03d78572-f213-4584-b8b2-e1a34dd1c030")}#userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/set_user_budget")
-def set_user_budget(userID: str, budget: float):
-    try:
-        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @app.post("/set_user_budget")
+# def set_user_budget(userID: str, budget: float):
+#     try:
+#         return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
-@app.delete("/delete_user_budget")
-def delete_user_budget(userID: str):
-    try:
-        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @app.delete("/delete_user_budget")
+# def delete_user_budget(userID: str):
+#     try:
+#         return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
-@app.put("/edit_user_budget")
-def edit_user_budget(userID: str, budget: float):
-    try:
-        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+# @app.put("/edit_user_budget")
+# def edit_user_budget(userID: str, budget: float):
+#     try:
+#         return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
     
 
 ## Budget endpoints (placeholders for now, need to be implemented in db.py) ##
 
-@app.get("/user_budget")
-def get_user_budget(userID: str):
+# @app.get("/user_budget")
+# def get_user_budget(userID: str):
+#     try:
+#         return {"budget": get_user_budget(userID=userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# @app.get("/user_remaining_budget")
+# def get_user_remaining_budget(userID: str):
+#     try:
+#         return {"remaining_budget": get_user_remaining_budget(userID=userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# @app.post("/set_user_budget")
+# def set_user_budget(userID: str, budget: float):
+#     try:
+#         return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# @app.delete("/delete_user_budget")
+# def delete_user_budget(userID: str):
+#     try:
+#         return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+# @app.put("/edit_user_budget")
+# def edit_user_budget(userID: str, budget: float):
+#     try:
+#         return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+    
+
+
+####### Task Endpoints #######
+
+
+@app.get("/get_tasks")
+def get_all_tasks(userID: str):
     try:
-        return {"budget": get_user_budget(userID=userID)}
+        return {"tasks": get_user_tasks(userID=userID)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.get("/user_remaining_budget")
-def get_user_remaining_budget(userID: str):
+@app.post("/create_task")
+def create_task(userID: str, taskData: TaskData):
     try:
-        return {"remaining_budget": get_user_remaining_budget(userID=userID)}
+        return {"message": create_user_task(userID=userID, taskData=taskData)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.post("/set_user_budget")
-def set_user_budget(userID: str, budget: float):
+@app.delete("/delete_task")
+def delete_task(userID: str, task_id: int):
     try:
-        return {"message": "user budget set"}#set_user_budget(userID=userID, budget=budget)}
+        return {"message": delete_user_task(userID=userID, task_id=task_id)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.delete("/delete_user_budget")
-def delete_user_budget(userID: str):
+@app.put("/edit_task")
+def edit_task(userID: str, task_id: int, taskData: TaskData):
     try:
-        return {"message": "user budget deleted"}#delete_user_budget(userID=userID)}
+        return {"message": edit_user_task(userID=userID, task_id=task_id, taskData=taskData)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@app.put("/edit_user_budget")
-def edit_user_budget(userID: str, budget: float):
+@app.put("/complete_task")
+def complete_task(userID: str, task_id: int, completed_date: str):
     try:
-        return {"message": "user budget edited"}#edit_user_budget(userID=userID, budget=budget)}
+        return {"message": complete_user_task(userID=userID, task_id=task_id, completed_date=completed_date)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/incomplete_task")
+def incomplete_task(userID: str, task_id: int):
+    try:
+        return {"message": incomplete_user_task(userID=userID, task_id=task_id)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+####### Productivity Endpoints #######
+
+
+@app.get("/get_productivity")
+def get_productivity(userID: str):
+    try:
+        return {"productivity": get_user_productivity(userID=userID)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/create_productivity")
+def create_productivity(userID: str, productivityData: ProductivityData):
+    try:
+        return {"message": create_user_productivity(userID=userID, productivityData=productivityData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/delete_productivity")
+def delete_productivity(userID: str, productivity_date: str):
+    try:
+        return {"message": delete_user_productivity(userID=userID, productivity_date=productivity_date)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.put("/edit_productivity")
+def edit_productivity(userID: str, productivity_date: str, productivityData: ProductivityData):
+    try:
+        return {"message": edit_user_productivity(userID=userID, productivity_date=productivity_date, productivityData=productivityData)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+@app.get("/productivity_heatmap")
+def productivity_heatmap(userID: str, start_date: str, end_date: str):
+    try:
+        return {"heatmap": get_user_productivity_date_range(userID=userID, start_date=start_date, end_date=end_date)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
   ## I tried this budget endpoint to test:
-  from fastapi import FastAPI, HTTPException
 
-app = FastAPI()
+
+# @app.get("/users/{userID}/budget")
+# def get_budget(userID: str):
+#     try:
+#         return {"budget": get_user_budget(userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+
+# @app.get("/users/{userID}/budget/remaining")
+# def get_remaining_budget(userID: str):
+#     try:
+#         return {"remaining_budget": get_user_remaining_budget(userID)}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+
+# @app.post("/users/{userID}/budget")
+# def set_budget(userID: str, budget: float):
+#     try:
+#         set_user_budget(userID, budget)
+#         return {"message": "budget set"}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+
+# @app.put("/users/{userID}/budget")
+# def edit_budget(userID: str, budget: float):
+#     try:
+#         edit_user_budget(userID, budget)
+#         return {"message": "budget updated"}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+
+# @app.delete("/users/{userID}/budget")
+# def delete_budget(userID: str):
+#     try:
+#         delete_user_budget(userID)
+#         return {"message": "budget deleted"}
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
+
+
+# Budget endpoints 
+
+
+# Budget endpoints are structured below to what we are calling 
+from db import (get_user_budget as db_get_user_budget,  get_user_remaining_budget as db_get_user_remaining_budget, get_user_budget_view as db_get_user_budget_view,
+    set_user_budget as db_set_user_budget, edit_user_budget as db_edit_user_budget, delete_user_budget as db_delete_user_budget,)
+
+
+class BudgetPayload(BaseModel):
+    budget: float
 
 
 @app.get("/users/{userID}/budget")
-def get_budget(userID: str):
+def get_budget_endpoint(userID: str):
     try:
-        return {"budget": get_user_budget(userID)}
+        budget = db_get_user_budget(userID)
+        return {"budget": budget}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/users/{userID}/budget/remaining")
-def get_remaining_budget(userID: str):
+def get_remaining_budget_endpoint(
+    userID: str,
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    view_type: str = Query("month")
+):
     try:
-        return {"remaining_budget": get_user_remaining_budget(userID)}
+        remaining_budget = db_get_user_remaining_budget(
+            userID=userID,
+            start_date=start_date,
+            end_date=end_date,
+            view_type=view_type
+        )
+        return {"remaining_budget": remaining_budget}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/users/{userID}/budget/view")
+def get_budget_view_endpoint(
+    userID: str,
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    view_type: str = Query("month")
+):
+    try:
+        budget_view = db_get_user_budget_view(
+            userID=userID,
+            start_date=start_date,
+            end_date=end_date,
+            view_type=view_type
+        )
+        return {"budget_view": budget_view}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/users/{userID}/budget")
-def set_budget(userID: str, budget: float):
+def set_budget_endpoint(userID: str, payload: BudgetPayload):
     try:
-        set_user_budget(userID, budget)
-        return {"message": "budget set"}
+        budget = db_set_user_budget(userID, payload.budget)
+        return {"message": "budget set", "budget": budget}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.put("/users/{userID}/budget")
-def edit_budget(userID: str, budget: float):
+def edit_budget_endpoint(userID: str, payload: BudgetPayload):
     try:
-        edit_user_budget(userID, budget)
-        return {"message": "budget updated"}
+        budget = db_edit_user_budget(userID, payload.budget)
+        return {"message": "budget updated", "budget": budget}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.delete("/users/{userID}/budget")
-def delete_budget(userID: str):
+def delete_budget_endpoint(userID: str):
     try:
-        delete_user_budget(userID)
-        return {"message": "budget deleted"}
+        deleted = db_delete_user_budget(userID)
+        return {"message": "budget deleted", "deleted": deleted}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

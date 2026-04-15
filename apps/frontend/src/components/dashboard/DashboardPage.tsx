@@ -62,30 +62,15 @@ function StatCard({ label, value, delta }: Stat) {
   );
 }
 
-/**
- * Simple “placeholder” productivity heatmap.
- * We’ll replace this later with a real grid + data (and eventually LLM feedback).
- */
-function ProductivityHeatmapCard() {
-  const days = Array.from({ length: 7 }, (_, i) => i);
-  const weeks = Array.from({ length: 16 }, (_, i) => i);
-
-  // 0–4 intensity
-  const levelClass = (lvl: number) => {
-    switch (lvl) {
-      case 0:
-        return "bg-gray-100";
-      case 1:
-        return "bg-gray-200";
-      case 2:
-        return "bg-gray-300";
-      case 3:
-        return "bg-gray-400";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
+function ProductivityHeatmapCard({
+  heatmapImageUrl,
+  isLoading,
+  error,
+}: {
+  heatmapImageUrl: string | null;
+  isLoading: boolean;
+  error: string | null;
+}) {
   return (
     <div className="bg-white border rounded-xl overflow-hidden">
       <PanelHeader
@@ -100,32 +85,25 @@ function ProductivityHeatmapCard() {
       />
 
       <div className="p-5">
-        <div className="flex gap-1">
-          {weeks.map((w) => (
-            <div key={w} className="flex flex-col gap-1">
-              {days.map((d) => {
-                const lvl = (w * 3 + d * 2) % 5; // deterministic “random-ish”
-                return (
-                  <div
-                    key={`${w}-${d}`}
-                    className={`w-4 h-4 rounded ${levelClass(lvl)} border border-gray-100`}
-                    title={`Week ${w + 1}, Day ${d + 1} • Level ${lvl}`}
-                  />
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
-          <span>Less</span>
-          <div className="flex gap-1">
-            {[0, 1, 2, 3, 4].map((lvl) => (
-              <div key={lvl} className={`w-4 h-4 rounded ${levelClass(lvl)} border border-gray-100`} />
-            ))}
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-sm text-gray-500">
+            Generating heatmap...
           </div>
-          <span>More</span>
-        </div>
+        ) : error ? (
+          <div className="h-64 flex items-center justify-center text-sm text-red-600">
+            {error}
+          </div>
+        ) : heatmapImageUrl ? (
+          <img
+            src={heatmapImageUrl}
+            alt="Productivity heatmap"
+            className="w-full h-auto max-h-[55vh] object-contain rounded-lg border border-gray-200 mx-auto"
+          />
+        ) : (
+          <div className="h-64 flex items-center justify-center text-sm text-gray-500">
+            No heatmap available.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -223,6 +201,9 @@ export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [heatmapImageUrl, setHeatmapImageUrl] = useState<string | null>(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(true);
+  const [heatmapError, setHeatmapError] = useState<string | null>(null);
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
 
   useEffect(() => {
@@ -290,8 +271,47 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchHeatmap = async () => {
+    try {
+      setHeatmapLoading(true);
+      setHeatmapError(null);
+
+      // Keep dashboard heatmap to one column (current week) with one row per day.
+      const today = new Date();
+      const day = today.getDay(); // Sun=0, Mon=1, ..., Sat=6
+      const diffToMonday = day === 0 ? 6 : day - 1;
+
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - diffToMonday);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
+      const start = weekStart.toISOString().split("T")[0];
+      const end = weekEnd.toISOString().split("T")[0];
+
+      const res = await fetch(`/api/productivity_heatmap?userID=${userID}&start_date=${start}&end_date=${end}`);
+      if (!res.ok) {
+        throw new Error("Failed to generate heatmap");
+      }
+
+      const data = await res.json();
+      const imagePath = data?.heatmap?.image_path as string | undefined;
+      const imageName = imagePath?.split(/[\\/]/).pop() ?? "heatmap.png";
+
+      setHeatmapImageUrl(`/api/generated/${imageName}?t=${Date.now()}`);
+    } catch (err) {
+      console.error("Failed to fetch heatmap:", err);
+      setHeatmapError("Could not load productivity heatmap.");
+      setHeatmapImageUrl(null);
+    } finally {
+      setHeatmapLoading(false);
+    }
+  };
+
   fetchAllEvents();
   fetchTransactions();
+  fetchHeatmap();
 
 
   }, []);
@@ -314,7 +334,11 @@ export default function DashboardPage() {
       {/* Main row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <ProductivityHeatmapCard />
+          <ProductivityHeatmapCard
+            heatmapImageUrl={heatmapImageUrl}
+            isLoading={heatmapLoading}
+            error={heatmapError}
+          />
         </div>
         <ScheduleCard schedule={schedule}/>
       </div>
