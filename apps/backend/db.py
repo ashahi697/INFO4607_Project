@@ -597,10 +597,12 @@ def get_user_remaining_budget(userID: str, start_date: str, end_date: str, view_
     )
 
     if not budget_view:
+        budget_row = _get_latest_budget_row(userID)
+        planned_amount = float(budget_row["planned_amount"]) if budget_row else 0.0
         return {
-            "bucket": None,
-            "remaining": 0.0,
-            "planned_amount": 0.0,
+            "bucket": start_date[:7] if start_date else None,
+            "remaining": planned_amount,
+            "planned_amount": planned_amount,
             "spent": 0.0,
             "income": 0.0,
             "net": 0.0,

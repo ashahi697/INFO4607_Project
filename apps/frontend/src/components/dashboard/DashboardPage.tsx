@@ -12,6 +12,7 @@ type Task = {
   priority: "High" | "Medium" | "Low";
   due: string;
   completed?: boolean;
+  completedDate?: string;
   createdAt?: string;
 };
 
@@ -24,16 +25,6 @@ const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030"; // TODO: get from auth co
   { label: "Expenses (This Month)", value: "$3,280.00", delta: "+3.1%" },
   { label: "Tasks Completed", value: "24/36", delta: "12 pending" },
 ];*/
-
-const initialStats: Stat[] = [
-  { label: "Monthly Budget", value: "$0.00" },
-  { label: "Income (This Month)", value: "$0.00" },
-  { label: "Expenses (This Month)", value: "$0.00" },
-  { label: "Remaining", value: "$0.00" },
-];
-
-// Response status before fetching real budget data is $0.00 for feilds keeps UI consistent 
-
 
 /*const schedule: ScheduleItem[] = [
   { title: "Team Meeting", time: "9:00 AM – 10:00 AM" },
@@ -91,6 +82,14 @@ const getTaskTimestamp = (task: Task): number => {
 const parseTransactionAmount = (rawAmount: string): number => {
   const parsed = Number(rawAmount.replace(/[^0-9.-]/g, ""));
   return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const getTodayInputDate = (): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 const isInCurrentMonth = (rawDate: string): boolean => {
@@ -240,16 +239,25 @@ function TransactionsCard({
   );
 }
 
-function TasksCard({ tasks }: { tasks: Task[] }) {
-  const visibleTasks = tasks.slice(0, MAX_DASHBOARD_TASKS);
-
+function TasksCard({
+  tasks,
+  onTaskToggle,
+}: {
+  tasks: Task[];
+  onTaskToggle: (task: Task) => void;
+}) {
   return (
     <div className="bg-white border rounded-xl overflow-hidden">
       <PanelHeader title="Active Tasks" right={<Link to="/productivity" className="text-sm text-gray-500 hover:text-gray-700">View All</Link>} />
       <div className="p-5 space-y-4">
-        {visibleTasks.map((task) => (
+        {tasks.slice(0, MAX_DASHBOARD_TASKS).map((task) => (
           <label key={task.id} className="flex items-start gap-3">
-            <input type="checkbox" defaultChecked={!!task.completed} className="mt-1" />
+            <input
+              type="checkbox"
+              checked={!!task.completed}
+              onChange={() => onTaskToggle(task)}
+              className="mt-1"
+            />
             <div className="flex-1">
               <div className={`font-medium ${task.completed ? "line-through text-gray-400" : ""}`}>{task.title}</div>
               <div className="text-sm text-gray-500">
@@ -259,7 +267,7 @@ function TasksCard({ tasks }: { tasks: Task[] }) {
             </div>
           </label>
         ))}
-        {visibleTasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <div className="text-sm text-gray-500">No incomplete tasks.</div>
         ) : null}
       </div>
@@ -270,7 +278,7 @@ function TasksCard({ tasks }: { tasks: Task[] }) {
 export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<Stat[]>(initialStats);
+  // const [stats, setStats] = useState<Stat[]>(initialStats);
   // code above calls for stats constant to be changed on line 14 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -279,6 +287,10 @@ export default function DashboardPage() {
   const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [heatmapError, setHeatmapError] = useState<string | null>(null);
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskCompletionDate, setTaskCompletionDate] = useState(getTodayInputDate());
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [isTaskActionLoading, setIsTaskActionLoading] = useState(false);
 
   const monthIncome = transactions
     .filter((transaction) => transaction.positive && isInCurrentMonth(transaction.date))
@@ -299,132 +311,16 @@ export default function DashboardPage() {
     },
   ];
 
-  useEffect(() => {
-  const fetchTransactions = async () => {
-    try {
-      const res = await fetch(`/api/get_transactions?userID=${userID}`);
-      const data = await res.json();
+  const openTaskCompletionModal = (task: Task) => {
+    setSelectedTask(task);
+    setTaskCompletionDate(task.completedDate ? task.completedDate.split("T")[0] : getTodayInputDate());
+    setIsTaskModalOpen(true);
+  };
 
-      const formattedTransactions: Transaction[] = (data.transactions ?? []).map((t: any) => ({
-        title: t.merchant ?? "Unknown Transaction",
-        date: t.txn_date ?? "",
-        amount: `${t.positive ? "+" : "-"}$${Number(t.amount ?? 0).toFixed(2)}`,
-        id: t.txn_id,
-        amountValue: Number(t.amount ?? 0),
-        positive: Boolean(t.positive),
-      }));
-
-      setTransactions(formattedTransactions);
-      } catch (err) {
-      console.error("Failed to fetch transactions:", err);
-      }
-    };
-
-
-// code below is for getting user budgets to return in the user budget row
-// get_budget_veiw retunrs grouped rows with income, spent, remaining
-// remaning budget output is JSON friendly and ready for frontend implementation
-  const fetchBudgetData = async () => {
-  try {
-    const today = new Date();
-
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-    const start_date = monthStart.toISOString().split("T")[0];
-    const end_date = monthEnd.toISOString().split("T")[0];
-
-    const [budgetRes, remainingRes, viewRes] = await Promise.all([
-      fetch(`/api/users/${userID}/budget`),
-      fetch(`/api/users/${userID}/budget/remaining?start_date=${start_date}&end_date=${end_date}&view_type=month`),
-      fetch(`/api/users/${userID}/budget/view?start_date=${start_date}&end_date=${end_date}&view_type=month`)
-    ]);
-
-    if (!budgetRes.ok || !remainingRes.ok || !viewRes.ok) {
-      throw new Error("Failed to fetch budget data");
-    }
-
-    const budgetData = await budgetRes.json();
-    const remainingData = await remainingRes.json();
-    const viewData = await viewRes.json();
-
-    // budget endpoint may return a budget row/object
-    const monthlyBudget = Number(
-      budgetData?.budget?.planned_amount ?? budgetData?.budget ?? 0
-    );
-
-    // remaining endpoint may return either an object or a raw value
-    const remaining = Number(
-      remainingData?.remaining_budget?.remaining ??
-      remainingData?.remaining_budget ??
-      0
-    );
-
-    // budget_view is expected to be an array of grouped rows
-    const latestBucket =
-      Array.isArray(viewData?.budget_view) && viewData.budget_view.length > 0
-        ? viewData.budget_view[viewData.budget_view.length - 1]
-        : null;
-
-    const incomeThisMonth = Number(latestBucket?.income ?? 0);
-    const spentThisMonth = Number(latestBucket?.spent ?? 0);
-
-    setStats([
-      { label: "Monthly Budget", value: `$${monthlyBudget.toFixed(2)}` },
-      { label: "Income (This Month)", value: `$${incomeThisMonth.toFixed(2)}` },
-      { label: "Expenses (This Month)", value: `$${spentThisMonth.toFixed(2)}` },
-      { label: "Remaining", value: `$${remaining.toFixed(2)}` },
-    ]);
-  } catch (err) {
-    console.error("Failed to fetch budget data:", err);
-    setStats(initialStats);
-  }
-};  
-
-
-  const fetchAllEvents = async () => {
-  try {
-    const res = await fetch(`api/events?userID=${userID}`);
-    const data = await res.json();
-
-    const formatTime = (time: string | null) => {
-      if (!time) return "All day";
-
-      const match = time.match(/^(\d{2}):(\d{2})/);
-      if (!match) return time;
-
-      const hour24 = Number(match[1]);
-      const minute = match[2];
-
-      const suffix = hour24 >= 12 ? "PM" : "AM";
-      const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
-
-      return `${hour12}:${minute} ${suffix}`;
-    };
-
-    const formatDate = (date: string | null) => {
-      if (!date) return "";
-
-      return new Date(date).toLocaleDateString([], {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-      // Example: "Mar 5, 2026"
-    };
-
-    const formattedSchedule: ScheduleItem[] = (data.data ?? []).map((e: any) => ({
-      title: e.title ?? "Untitled Event",
-      start_time: formatTime(e.start_time),
-      end_time: formatTime(e.end_time),
-      date: formatDate(e.start_date),
-    }));
-
-    setSchedule(formattedSchedule);
-      console.log("formatted schedule:", formattedSchedule);
-    } catch (err) {
-      console.error("Failed to fetch events:", err);
-    }
+  const closeTaskCompletionModal = () => {
+    setIsTaskModalOpen(false);
+    setSelectedTask(null);
+    setTaskCompletionDate(getTodayInputDate());
   };
 
   const fetchTasks = async () => {
@@ -439,6 +335,7 @@ export default function DashboardPage() {
             priority: normalizePriority(task),
             due: formatTaskDate(task.due_date ?? task.due ?? task.created_at ?? ""),
             completed: Boolean(task.completed || task.completed_date),
+            completedDate: task.completed_date ?? "",
             createdAt: task.created_at ?? task.due_date ?? task.due ?? "",
           }))
         : [];
@@ -496,13 +393,121 @@ export default function DashboardPage() {
     }
   };
 
+  const handleCompleteTask = async () => {
+    if (!selectedTask) return;
+
+    try {
+      setIsTaskActionLoading(true);
+      const response = await fetch(
+        `/api/complete_task?userID=${userID}&task_id=${selectedTask.id}&completed_date=${encodeURIComponent(taskCompletionDate)}`,
+        { method: "PUT" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to complete task");
+      }
+
+      closeTaskCompletionModal();
+      await Promise.all([fetchTasks(), fetchHeatmap()]);
+    } catch (err) {
+      console.error("Error completing task:", err);
+    } finally {
+      setIsTaskActionLoading(false);
+    }
+  };
+
+  const handleIncompleteTask = async () => {
+    if (!selectedTask) return;
+
+    try {
+      setIsTaskActionLoading(true);
+      const response = await fetch(
+        `/api/incomplete_task?userID=${userID}&task_id=${selectedTask.id}`,
+        { method: "PUT" }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to mark task incomplete");
+      }
+
+      closeTaskCompletionModal();
+      await Promise.all([fetchTasks(), fetchHeatmap()]);
+    } catch (err) {
+      console.error("Error marking task incomplete:", err);
+    } finally {
+      setIsTaskActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+  const fetchTransactions = async () => {
+    try {
+      const res = await fetch(`/api/get_transactions?userID=${userID}`);
+      const data = await res.json();
+
+      const formattedTransactions: Transaction[] = (data.transactions ?? []).map((t: any) => ({
+        title: t.merchant ?? "Unknown Transaction",
+        date: t.txn_date ?? "",
+        amount: `${t.positive ? "+" : "-"}$${Number(t.amount ?? 0).toFixed(2)}`,
+        id: t.txn_id,
+        amountValue: Number(t.amount ?? 0),
+        positive: Boolean(t.positive),
+      }));
+
+      setTransactions(formattedTransactions);
+      } catch (err) {
+      console.error("Failed to fetch transactions:", err);
+      }
+    };
+  const fetchAllEvents = async () => {
+  try {
+    const res = await fetch(`api/events?userID=${userID}`);
+    const data = await res.json();
+
+    const formatTime = (time: string | null) => {
+      if (!time) return "All day";
+
+      const match = time.match(/^(\d{2}):(\d{2})/);
+      if (!match) return time;
+
+      const hour24 = Number(match[1]);
+      const minute = match[2];
+
+      const suffix = hour24 >= 12 ? "PM" : "AM";
+      const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+
+      return `${hour12}:${minute} ${suffix}`;
+    };
+
+    const formatDate = (date: string | null) => {
+      if (!date) return "";
+
+      return new Date(date).toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+      // Example: "Mar 5, 2026"
+    };
+
+    const formattedSchedule: ScheduleItem[] = (data.data ?? []).map((e: any) => ({
+      title: e.title ?? "Untitled Event",
+      start_time: formatTime(e.start_time),
+      end_time: formatTime(e.end_time),
+      date: formatDate(e.start_date),
+    }));
+
+    setSchedule(formattedSchedule);
+      console.log("formatted schedule:", formattedSchedule);
+    } catch (err) {
+      console.error("Failed to fetch events:", err);
+    }
+  };
+
   fetchAllEvents();
   fetchTransactions();
   fetchTasks();
   fetchHeatmap();
-  fetchBudgetData();
-// Add code above for budget data fetching and stats
-
 
   }, []);
 
@@ -538,7 +543,7 @@ export default function DashboardPage() {
         <TransactionsCard
           transactions={transactions}
           onAddTransactionClick={() => setIsAddTransactionModalOpen(true)}        />
-        <TasksCard tasks={tasks} />
+        <TasksCard tasks={tasks} onTaskToggle={openTaskCompletionModal} />
       </div>
 
       <AddTransactionModal
@@ -556,6 +561,96 @@ export default function DashboardPage() {
           ])
         }
       />
+
+      {isTaskModalOpen && selectedTask ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <div className="w-full max-w-md rounded-xl border bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b px-5 py-3">
+              <h3 className="font-medium">Task Completion</h3>
+              <button
+                type="button"
+                onClick={closeTaskCompletionModal}
+                aria-label="Close task completion modal"
+                className="text-gray-500 transition-colors hover:text-gray-700"
+                disabled={isTaskActionLoading}
+              >
+                X
+              </button>
+            </div>
+
+            <div className="space-y-4 p-5">
+              <div className="text-sm text-gray-600">
+                {selectedTask.title}
+              </div>
+
+              {selectedTask.completedDate ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600">
+                    This task is already completed. You can update the completion date or mark it incomplete.
+                  </p>
+                  <label className="block space-y-1">
+                    <span className="text-sm text-gray-600">Completion Date</span>
+                    <input
+                      type="date"
+                      value={taskCompletionDate}
+                      onChange={(e) => setTaskCompletionDate(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
+                    />
+                  </label>
+                  <div className="flex items-center justify-end gap-3 border-t pt-4">
+                    <button
+                      type="button"
+                      onClick={handleIncompleteTask}
+                      disabled={isTaskActionLoading}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-60"
+                    >
+                      Mark Incomplete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCompleteTask}
+                      disabled={isTaskActionLoading || !taskCompletionDate}
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-60"
+                    >
+                      Save Completion Date
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <label className="block space-y-1">
+                    <span className="text-sm text-gray-600">Completion Date</span>
+                    <input
+                      type="date"
+                      value={taskCompletionDate}
+                      onChange={(e) => setTaskCompletionDate(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
+                    />
+                  </label>
+                  <div className="flex items-center justify-end gap-3 border-t pt-4">
+                    <button
+                      type="button"
+                      onClick={closeTaskCompletionModal}
+                      disabled={isTaskActionLoading}
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-60"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCompleteTask}
+                      disabled={isTaskActionLoading || !taskCompletionDate}
+                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-60"
+                    >
+                      Mark Complete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
