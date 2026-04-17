@@ -5,18 +5,17 @@ import AddTransactionModal from "../app-shell/AddTransactionModal";
 
 type Stat = { label: string; value: string; delta?: string };
 type ScheduleItem = { title: string; start_time?: string; end_time?: string, date?: string };
-type Transaction = { title: string; date: string; amount: string; id: string };
-type Task = { title: string; priority: "High" | "Medium" | "Low"; due: string; completed?: boolean };
+type Transaction = { title: string; date: string; amount: string; id: string; amountValue: number; positive: boolean };
+type Task = {
+  id: string;
+  title: string;
+  priority: "High" | "Medium" | "Low";
+  due: string;
+  completed?: boolean;
+  createdAt?: string;
+};
 
 const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030"; // TODO: get from auth context
-
-
-const stats: Stat[] = [
-  { label: "Total Balance", value: "$24,580.00", delta: "+12.5%" },
-  { label: "Income (This Month)", value: "$8,450.00", delta: "+8.2%" },
-  { label: "Expenses (This Month)", value: "$3,280.00", delta: "+3.1%" },
-  { label: "Tasks Completed", value: "24/36", delta: "12 pending" },
-];
 
 /*const schedule: ScheduleItem[] = [
   { title: "Team Meeting", time: "9:00 AM – 10:00 AM" },
@@ -33,13 +32,61 @@ const stats: Stat[] = [
 ]; */
 
 
-const tasks: Task[] = [
-  { title: "Review Q1 financial reports", priority: "High", due: "Jan 20, 2025" },
-  { title: "Prepare client presentation", priority: "Medium", due: "Jan 18, 2025" },
-  { title: "Update project timeline", priority: "Low", due: "Jan 22, 2025" },
-  { title: "Send invoices to clients", priority: "Medium", due: "Jan 15, 2025", completed: true },
-  { title: "Team meeting notes", priority: "Medium", due: "Jan 17, 2025" },
-];
+const MAX_DASHBOARD_TASKS = 5;
+
+const normalizePriority = (task: any): "High" | "Medium" | "Low" => {
+  const rawPriority = task?.priority;
+  if (rawPriority === "High" || rawPriority === "Medium" || rawPriority === "Low") {
+    return rawPriority;
+  }
+
+  const weight = Number(task?.priority_weight ?? task?.priorityWeight);
+  if (!Number.isNaN(weight)) {
+    if (weight >= 8) return "High";
+    if (weight >= 4) return "Medium";
+  }
+
+  return "Low";
+};
+
+const formatTaskDate = (rawDate: string | undefined): string => {
+  if (!rawDate) return "";
+
+  const parsed = new Date(rawDate);
+  if (Number.isNaN(parsed.getTime())) {
+    return rawDate;
+  }
+
+  return parsed.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
+const getTaskTimestamp = (task: Task): number => {
+  const sourceDate = task.createdAt || task.due;
+  const parsed = sourceDate ? new Date(sourceDate).getTime() : NaN;
+  return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+};
+
+const parseTransactionAmount = (rawAmount: string): number => {
+  const parsed = Number(rawAmount.replace(/[^0-9.-]/g, ""));
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const isInCurrentMonth = (rawDate: string): boolean => {
+  if (!rawDate) return false;
+
+  const parsedDate = new Date(rawDate);
+  if (Number.isNaN(parsedDate.getTime())) return false;
+
+  const now = new Date();
+  return (
+    parsedDate.getMonth() === now.getMonth() &&
+    parsedDate.getFullYear() === now.getFullYear()
+  );
+};
 
 function PanelHeader({ title, right }: { title: string; right?: React.ReactNode }) {
   return (
@@ -175,23 +222,28 @@ function TransactionsCard({
   );
 }
 
-function TasksCard() {
+function TasksCard({ tasks }: { tasks: Task[] }) {
+  const visibleTasks = tasks.slice(0, MAX_DASHBOARD_TASKS);
+
   return (
     <div className="bg-white border rounded-xl overflow-hidden">
-      <PanelHeader title="Active Tasks" right={<button className="text-sm text-gray-500 hover:text-gray-700">View All</button>} />
+      <PanelHeader title="Active Tasks" right={<Link to="/productivity" className="text-sm text-gray-500 hover:text-gray-700">View All</Link>} />
       <div className="p-5 space-y-4">
-        {tasks.map((task) => (
-          <label key={task.title} className="flex items-start gap-3">
+        {visibleTasks.map((task) => (
+          <label key={task.id} className="flex items-start gap-3">
             <input type="checkbox" defaultChecked={!!task.completed} className="mt-1" />
             <div className="flex-1">
               <div className={`font-medium ${task.completed ? "line-through text-gray-400" : ""}`}>{task.title}</div>
               <div className="text-sm text-gray-500">
                 <span className="inline-block px-2 py-0.5 rounded bg-gray-100 mr-2">{task.priority} Priority</span>
-                <span>Due: {task.due}</span>
+                <span>Due: {task.due || "No due date"}</span>
               </div>
             </div>
           </label>
         ))}
+        {visibleTasks.length === 0 ? (
+          <div className="text-sm text-gray-500">No incomplete tasks.</div>
+        ) : null}
       </div>
     </div>
   );
@@ -201,10 +253,31 @@ export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [taskSummary, setTaskSummary] = useState({ completed: 0, total: 0 });
   const [heatmapImageUrl, setHeatmapImageUrl] = useState<string | null>(null);
   const [heatmapLoading, setHeatmapLoading] = useState(true);
   const [heatmapError, setHeatmapError] = useState<string | null>(null);
   const [isAddTransactionModalOpen, setIsAddTransactionModalOpen] = useState(false);
+
+  const monthIncome = transactions
+    .filter((transaction) => transaction.positive && isInCurrentMonth(transaction.date))
+    .reduce((sum, transaction) => sum + Math.abs(transaction.amountValue), 0);
+
+  const monthExpenses = transactions
+    .filter((transaction) => !transaction.positive && isInCurrentMonth(transaction.date))
+    .reduce((sum, transaction) => sum + Math.abs(transaction.amountValue), 0);
+
+  const stats: Stat[] = [
+    { label: "Total Balance", value: "$24,580.00", delta: "+12.5%" },
+    { label: "Income (This Month)", value: `$${monthIncome.toFixed(2)}` },
+    { label: "Expenses (This Month)", value: `$${monthExpenses.toFixed(2)}` },
+    {
+      label: "Tasks Completed",
+      value: `${taskSummary.completed}/${taskSummary.total}`,
+      delta: `${Math.max(taskSummary.total - taskSummary.completed, 0)} pending`,
+    },
+  ];
 
   useEffect(() => {
   const fetchTransactions = async () => {
@@ -217,6 +290,8 @@ export default function DashboardPage() {
         date: t.txn_date ?? "",
         amount: `${t.positive ? "+" : "-"}$${Number(t.amount ?? 0).toFixed(2)}`,
         id: t.txn_id,
+        amountValue: Number(t.amount ?? 0),
+        positive: Boolean(t.positive),
       }));
 
       setTransactions(formattedTransactions);
@@ -271,6 +346,37 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchTasks = async () => {
+    try {
+      const res = await fetch(`/api/get_tasks?userID=${userID}`);
+      const data = await res.json();
+
+      const normalizedTasks: Task[] = Array.isArray(data?.tasks)
+        ? data.tasks.map((task: any) => ({
+            id: String(task.task_id ?? task.id ?? `${task.task_name ?? task.title}-${task.created_at ?? task.due_date ?? ""}`),
+            title: task.title ?? task.task_name ?? task.name ?? "Untitled Task",
+            priority: normalizePriority(task),
+            due: formatTaskDate(task.due_date ?? task.due ?? task.created_at ?? ""),
+            completed: Boolean(task.completed || task.completed_date),
+            createdAt: task.created_at ?? task.due_date ?? task.due ?? "",
+          }))
+        : [];
+
+      setTaskSummary({
+        completed: normalizedTasks.filter((task) => Boolean(task.completed)).length,
+        total: normalizedTasks.length,
+      });
+
+      const incompleteTasks = normalizedTasks
+        .filter((task) => !task.completed)
+        .sort((a, b) => getTaskTimestamp(a) - getTaskTimestamp(b));
+
+      setTasks(incompleteTasks);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err);
+    }
+  };
+
   const fetchHeatmap = async () => {
     try {
       setHeatmapLoading(true);
@@ -311,6 +417,7 @@ export default function DashboardPage() {
 
   fetchAllEvents();
   fetchTransactions();
+  fetchTasks();
   fetchHeatmap();
 
 
@@ -348,14 +455,23 @@ export default function DashboardPage() {
         <TransactionsCard
           transactions={transactions}
           onAddTransactionClick={() => setIsAddTransactionModalOpen(true)}        />
-        <TasksCard />
+        <TasksCard tasks={tasks} />
       </div>
 
       <AddTransactionModal
         isOpen={isAddTransactionModalOpen}
         onClose={() => setIsAddTransactionModalOpen(false)}
         userID={userID}
-        onTransactionAdded={(newTransaction) => setTransactions((prev) => [newTransaction, ...prev])}
+        onTransactionAdded={(newTransaction) =>
+          setTransactions((prev) => [
+            {
+              ...newTransaction,
+              amountValue: parseTransactionAmount(newTransaction.amount),
+              positive: String(newTransaction.amount).trim().startsWith("+"),
+            },
+            ...prev,
+          ])
+        }
       />
     </div>
   );
