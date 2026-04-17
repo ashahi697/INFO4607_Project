@@ -17,6 +17,24 @@ type Task = {
 
 const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030"; // TODO: get from auth context
 
+
+/*const stats: Stat[] = [
+  { label: "Total Balance", value: "$24,580.00", delta: "+12.5%" },
+  { label: "Income (This Month)", value: "$8,450.00", delta: "+8.2%" },
+  { label: "Expenses (This Month)", value: "$3,280.00", delta: "+3.1%" },
+  { label: "Tasks Completed", value: "24/36", delta: "12 pending" },
+];*/
+
+const initialStats: Stat[] = [
+  { label: "Monthly Budget", value: "$0.00" },
+  { label: "Income (This Month)", value: "$0.00" },
+  { label: "Expenses (This Month)", value: "$0.00" },
+  { label: "Remaining", value: "$0.00" },
+];
+
+// Response status before fetching real budget data is $0.00 for feilds keeps UI consistent 
+
+
 /*const schedule: ScheduleItem[] = [
   { title: "Team Meeting", time: "9:00 AM – 10:00 AM" },
   { title: "Client Presentation", time: "2:00 PM – 3:30 PM" },
@@ -252,6 +270,8 @@ function TasksCard({ tasks }: { tasks: Task[] }) {
 export default function DashboardPage() {
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [stats, setStats] = useState<Stat[]>(initialStats);
+  // code above calls for stats constant to be changed on line 14 
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskSummary, setTaskSummary] = useState({ completed: 0, total: 0 });
@@ -299,6 +319,67 @@ export default function DashboardPage() {
       console.error("Failed to fetch transactions:", err);
       }
     };
+
+
+// code below is for getting user budgets to return in the user budget row
+// get_budget_veiw retunrs grouped rows with income, spent, remaining
+// remaning budget output is JSON friendly and ready for frontend implementation
+  const fetchBudgetData = async () => {
+  try {
+    const today = new Date();
+
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const start_date = monthStart.toISOString().split("T")[0];
+    const end_date = monthEnd.toISOString().split("T")[0];
+
+    const [budgetRes, remainingRes, viewRes] = await Promise.all([
+      fetch(`/api/users/${userID}/budget`),
+      fetch(`/api/users/${userID}/budget/remaining?start_date=${start_date}&end_date=${end_date}&view_type=month`),
+      fetch(`/api/users/${userID}/budget/view?start_date=${start_date}&end_date=${end_date}&view_type=month`)
+    ]);
+
+    if (!budgetRes.ok || !remainingRes.ok || !viewRes.ok) {
+      throw new Error("Failed to fetch budget data");
+    }
+
+    const budgetData = await budgetRes.json();
+    const remainingData = await remainingRes.json();
+    const viewData = await viewRes.json();
+
+    // budget endpoint may return a budget row/object
+    const monthlyBudget = Number(
+      budgetData?.budget?.planned_amount ?? budgetData?.budget ?? 0
+    );
+
+    // remaining endpoint may return either an object or a raw value
+    const remaining = Number(
+      remainingData?.remaining_budget?.remaining ??
+      remainingData?.remaining_budget ??
+      0
+    );
+
+    // budget_view is expected to be an array of grouped rows
+    const latestBucket =
+      Array.isArray(viewData?.budget_view) && viewData.budget_view.length > 0
+        ? viewData.budget_view[viewData.budget_view.length - 1]
+        : null;
+
+    const incomeThisMonth = Number(latestBucket?.income ?? 0);
+    const spentThisMonth = Number(latestBucket?.spent ?? 0);
+
+    setStats([
+      { label: "Monthly Budget", value: `$${monthlyBudget.toFixed(2)}` },
+      { label: "Income (This Month)", value: `$${incomeThisMonth.toFixed(2)}` },
+      { label: "Expenses (This Month)", value: `$${spentThisMonth.toFixed(2)}` },
+      { label: "Remaining", value: `$${remaining.toFixed(2)}` },
+    ]);
+  } catch (err) {
+    console.error("Failed to fetch budget data:", err);
+    setStats(initialStats);
+  }
+};  
 
 
   const fetchAllEvents = async () => {
@@ -419,6 +500,8 @@ export default function DashboardPage() {
   fetchTransactions();
   fetchTasks();
   fetchHeatmap();
+  fetchBudgetData();
+// Add code above for budget data fetching and stats
 
 
   }, []);
@@ -476,3 +559,19 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
+// Change the hardcoded constant for what shows up on our budgets 
+// Orginal Hardcoded constant begins on line 14 and ends on line 19
+// Change to code below: 
+
+//const initialStats: Stat[] = [
+  //{ label: "Monthly Budget", value: "$0.00" },
+ //{ label: "Income (This Month)", value: "$0.00" },
+  //{ label: "Expenses (This Month)", value: "$0.00" },
+  //{ label: "Remaining", value: "$0.00" },
+//];
+
+// Possibly change fetch(`api/events?userID=${userID}`); to
+// fetch(`/api/events?userID=${userID}`); only becuase it can be inconsistent with
+// some of our other calls just depends on routing context 
