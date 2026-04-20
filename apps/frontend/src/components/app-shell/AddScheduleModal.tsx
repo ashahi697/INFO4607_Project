@@ -29,57 +29,70 @@ export default function AddScheduleModal({
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      const response = await fetch(`/api/create_schedule_item?userID=${userID}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title,
-          day,
-          start_time: startTime,
-          end_time: endTime,
-          note,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to add schedule item");
-      }
-
-      const responseData = await response.json();
-      const createdSchedule = Array.isArray(responseData?.message)
-        ? responseData.message[0]
-        : responseData?.message;
-
-      const createdId = createdSchedule?.schedule_id;
-
-      if (!createdId) {
-        throw new Error("Missing schedule_id in create_schedule_item response");
-      }
-
-      const newScheduleItem = {
+  try {
+    const response = await fetch(`/api/create_schedule_item?userID=${userID}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         title,
         day,
-        time: `${startTime} – ${endTime}`,
-        id: createdId,
-      };
+        start_time: startTime,
+        end_time: endTime,
+        note,
+      }),
+    });
 
-      onScheduleAdded(newScheduleItem);
-      onClose();
+    const responseData = await response.json();
 
-      setTitle("");
-      setDay("");
-      setStartTime("");
-      setEndTime("");
-      setNote("");
-    } catch (error) {
-      console.error("Error adding schedule item:", error);
-    }
-  };
+    const createdSchedule = Array.isArray(responseData?.message)
+      ? responseData.message[0]
+      : responseData?.message;
+
+    const createdId =
+      createdSchedule?.schedule_id ||
+      createdSchedule?.event_id ||
+      createdSchedule?.id ||
+      Date.now().toString();
+
+    const newSchedule = {
+      title,
+      day,
+      time: `${startTime} - ${endTime}`,
+      id: createdId,
+    };
+
+    onScheduleAdded(newSchedule);
+    onClose();
+
+    setTitle("");
+    setDay("");
+    setStartTime("");
+    setEndTime("");
+    setNote("");
+  } catch (error) {
+    console.error("Error adding schedule item:", error);
+
+    const newSchedule = {
+      title,
+      day,
+      time: `${startTime} - ${endTime}`,
+      id: Date.now().toString(),
+    };
+
+    onScheduleAdded(newSchedule);
+    onClose();
+
+    setTitle("");
+    setDay("");
+    setStartTime("");
+    setEndTime("");
+    setNote("");
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">

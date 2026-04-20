@@ -386,8 +386,11 @@ export default function ProductivityPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Productivity</h1>
-          <p className="text-gray-500">Track weekly completion and manage task status.</p>
+          <p className="text-gray-500">
+            View task progress, work patterns, and focus habits.
+          </p>
         </div>
+
         <button
           onClick={() => setIsAddTaskModalOpen(true)}
           className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white"
@@ -429,16 +432,73 @@ export default function ProductivityPage() {
         onTaskAdded={handleTaskAdded}
       />
 
-      <TaskCompletionModal
-        isOpen={isTaskModalOpen}
-        selectedTask={selectedTask}
-        taskCompletionDate={taskCompletionDate}
-        isTaskActionLoading={isTaskActionLoading}
-        onTaskCompletionDateChange={setTaskCompletionDate}
-        onClose={closeTaskCompletionModal}
-        onMarkComplete={handleCompleteTask}
-        onMarkIncomplete={handleIncompleteTask}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {habits.map((item) => (
+          <div
+            key={item.label}
+            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+          >
+            <div className="text-sm text-gray-500">{item.label}</div>
+            <div className="mt-2 text-2xl font-semibold text-gray-900">
+              {item.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="border-b px-5 py-3">
+          <h2 className="font-medium text-gray-900">Task Overview</h2>
+        </div>
+
+        <div className="space-y-3 p-5">
+          {tasks.length === 0 ? (
+            <div className="text-sm text-gray-500">No tasks yet.</div>
+          ) : (
+            tasks.map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between rounded-lg border border-gray-100 p-4"
+              >
+                <div>
+                  <div
+                    className={`font-medium ${
+                      task.completed
+                        ? "text-gray-400 line-through"
+                        : "text-gray-900"
+                    }`}
+                  >
+                    {task.title}
+                  </div>
+
+                  <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+                    <span
+                      className={`rounded px-2 py-0.5 text-xs font-medium ${
+                        task.priority === "High"
+                          ? "bg-red-50 text-red-600"
+                          : task.priority === "Medium"
+                          ? "bg-yellow-50 text-yellow-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {task.priority}
+                    </span>
+
+                    <span>Due: {task.due || "No due date"}</span>
+                  </div>
+                </div>
+
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  readOnly
+                  className="h-4 w-4"
+                />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
