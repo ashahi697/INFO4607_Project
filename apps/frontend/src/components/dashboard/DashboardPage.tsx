@@ -2,6 +2,7 @@ import React from 'react';
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import AddTransactionModal from "../app-shell/AddTransactionModal";
+import TaskCompletionModal from "../app-shell/TaskCompletionModal";
 
 type Stat = { label: string; value: string; delta?: string };
 type ScheduleItem = { title: string; start_time?: string; end_time?: string, date?: string };
@@ -51,8 +52,8 @@ const normalizePriority = (task: any): "High" | "Medium" | "Low" => {
 
   const weight = Number(task?.priority_weight ?? task?.priorityWeight);
   if (!Number.isNaN(weight)) {
-    if (weight >= 8) return "High";
-    if (weight >= 4) return "Medium";
+    if (weight >= 5) return "High";
+    if (weight >= 3) return "Medium";
   }
 
   return "Low";
@@ -562,95 +563,16 @@ export default function DashboardPage() {
         }
       />
 
-      {isTaskModalOpen && selectedTask ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
-          <div className="w-full max-w-md rounded-xl border bg-white shadow-lg">
-            <div className="flex items-center justify-between border-b px-5 py-3">
-              <h3 className="font-medium">Task Completion</h3>
-              <button
-                type="button"
-                onClick={closeTaskCompletionModal}
-                aria-label="Close task completion modal"
-                className="text-gray-500 transition-colors hover:text-gray-700"
-                disabled={isTaskActionLoading}
-              >
-                X
-              </button>
-            </div>
-
-            <div className="space-y-4 p-5">
-              <div className="text-sm text-gray-600">
-                {selectedTask.title}
-              </div>
-
-              {selectedTask.completedDate ? (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600">
-                    This task is already completed. You can update the completion date or mark it incomplete.
-                  </p>
-                  <label className="block space-y-1">
-                    <span className="text-sm text-gray-600">Completion Date</span>
-                    <input
-                      type="date"
-                      value={taskCompletionDate}
-                      onChange={(e) => setTaskCompletionDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
-                    />
-                  </label>
-                  <div className="flex items-center justify-end gap-3 border-t pt-4">
-                    <button
-                      type="button"
-                      onClick={handleIncompleteTask}
-                      disabled={isTaskActionLoading}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-60"
-                    >
-                      Mark Incomplete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCompleteTask}
-                      disabled={isTaskActionLoading || !taskCompletionDate}
-                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-60"
-                    >
-                      Save Completion Date
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <label className="block space-y-1">
-                    <span className="text-sm text-gray-600">Completion Date</span>
-                    <input
-                      type="date"
-                      value={taskCompletionDate}
-                      onChange={(e) => setTaskCompletionDate(e.target.value)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
-                    />
-                  </label>
-                  <div className="flex items-center justify-end gap-3 border-t pt-4">
-                    <button
-                      type="button"
-                      onClick={closeTaskCompletionModal}
-                      disabled={isTaskActionLoading}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition-colors hover:text-gray-800 disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleCompleteTask}
-                      disabled={isTaskActionLoading || !taskCompletionDate}
-                      className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700 disabled:opacity-60"
-                    >
-                      Mark Complete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <TaskCompletionModal
+        isOpen={isTaskModalOpen}
+        selectedTask={selectedTask}
+        taskCompletionDate={taskCompletionDate}
+        isTaskActionLoading={isTaskActionLoading}
+        onTaskCompletionDateChange={setTaskCompletionDate}
+        onClose={closeTaskCompletionModal}
+        onMarkComplete={handleCompleteTask}
+        onMarkIncomplete={handleIncompleteTask}
+      />
     </div>
   );
 }

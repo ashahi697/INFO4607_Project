@@ -26,6 +26,12 @@ export default function AddTaskModal({
   const [due, setDue] = React.useState("");
   const [note, setNote] = React.useState("");
 
+  const getPriorityWeight = (rawPriority: string): number => {
+    if (rawPriority === "High") return 5;
+    if (rawPriority === "Medium") return 3;
+    return 1;
+  };
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,11 +44,11 @@ export default function AddTaskModal({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          title,
-          priority,
-          due_date: due,
-          note,
-          completed: false,
+          task_name: title,
+          priority_weight: getPriorityWeight(priority),
+          created_at: due || new Date().toISOString().split("T")[0],
+          completed_date: null,
+          name: note || null,
         }),
       });
 
@@ -55,7 +61,7 @@ export default function AddTaskModal({
         ? responseData.message[0]
         : responseData?.message;
 
-      const createdId = createdTask?.task_id;
+      const createdId = createdTask?.task_id ?? createdTask?.id;
 
       if (!createdId) {
         throw new Error("Missing task_id in create_task response");
