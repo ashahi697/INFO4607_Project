@@ -336,15 +336,19 @@ def process_budget_summary(budgets, budget_periods, transactions, user_id):
         period.get("end_date")
     )
 
+    total_income = Decimal("0")
     total_spent = Decimal("0")
 
     for txn in period_transactions:
         positive = _normalize_positive(txn.get("positive"))
-        if positive is False:
+        if positive is True:
+            total_income += _to_decimal(txn.get("amount"))
+        elif positive is False:
             total_spent += _to_decimal(txn.get("amount"))
 
     planned_amount = _to_decimal(budget.get("planned_amount"))
-    remaining_budget = planned_amount - total_spent
+    remaining_budget = planned_amount + total_income - total_spent
+    net = total_income - total_spent
     percent_used = Decimal("0")
 
     if planned_amount != 0:
@@ -354,10 +358,12 @@ def process_budget_summary(budgets, budget_periods, transactions, user_id):
         "user_id": user_id,
         "period_name": period.get("period_name"),
         "planned_amount": float(planned_amount),
+        "total_income": float(total_income),
         "total_spent": float(total_spent),
+        "net": float(net),
         "remaining_budget": float(remaining_budget),
         "percent_used": float(percent_used),
-        "over_budget": total_spent > planned_amount
+        "over_budget": remaining_budget < 0
     }
 
 
@@ -459,7 +465,7 @@ def get_budget_summary_by_range(
         income = grouped[key]["income"]
         spent = grouped[key]["spent"]
         net = income - spent
-        remaining = planned_amount - spent
+        remaining = planned_amount + net
 
         results.append({
             "bucket": key,
@@ -469,7 +475,7 @@ def get_budget_summary_by_range(
             "spent": float(spent),
             "net": float(net),
             "remaining": float(remaining),
-            "over_budget": spent > planned_amount,
+            "over_budget": remaining < 0,
             "transaction_count": grouped[key]["transaction_count"]
         })
 
@@ -547,7 +553,7 @@ def get_budget_summary_by_periods(
             count += 1
 
         net = income - spent
-        remaining = planned_amount - spent
+        remaining = planned_amount + net
 
         results.append({
             "bucket": period["period_name"],
@@ -559,7 +565,7 @@ def get_budget_summary_by_periods(
             "spent": float(spent),
             "net": float(net),
             "remaining": float(remaining),
-            "over_budget": spent > planned_amount,
+            "over_budget": remaining < 0,
             "transaction_count": count
         })
 

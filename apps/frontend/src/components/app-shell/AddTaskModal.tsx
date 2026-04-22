@@ -21,31 +21,55 @@ export default function AddTaskModal({
   userID,
   onTaskAdded,
 }: AddTaskModalProps) {
+  const getTodayLocalDate = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const [title, setTitle] = React.useState("");
   const [priority, setPriority] = React.useState("Medium");
-  const [due, setDue] = React.useState("");
+  const [due, setDue] = React.useState(getTodayLocalDate);
   const [note, setNote] = React.useState("");
+
+  const getPriorityWeight = (rawPriority: string): number => {
+    if (rawPriority === "High") return 5;
+    if (rawPriority === "Medium") return 3;
+    return 1;
+  };
+  const today = getTodayLocalDate();
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setDue(getTodayLocalDate());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  
   const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
-  try {
-    const response = await fetch(`/api/create_task?userID=${userID}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        priority,
-        due_date: due,
-        note,
-        completed: false,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/create_task?userID=${userID}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          task_name: title,
+          priority_weight: getPriorityWeight(priority),
+          created_at: today,
+          completed_date: null,
+          name: note || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add task");
+      }
 
     const responseData = await response.json();
 
@@ -53,10 +77,11 @@ export default function AddTaskModal({
       ? responseData.message[0]
       : responseData?.message;
 
-    const createdId =
-      createdTask?.task_id ||
-      createdTask?.id ||
-      Date.now().toString();
+      const createdId = createdTask?.task_id ?? createdTask?.id;
+
+      if (!createdId) {
+        throw new Error("Missing task_id in create_task response");
+      }
 
     const newTask = {
       title,
@@ -71,27 +96,10 @@ export default function AddTaskModal({
 
     setTitle("");
     setPriority("Medium");
-    setDue("");
+    setDue(getTodayLocalDate());
     setNote("");
   } catch (error) {
     console.error("Error adding task:", error);
-
-    // fallback so UI still works
-    const newTask = {
-      title,
-      priority,
-      due,
-      completed: false,
-      id: Date.now().toString(),
-    };
-
-    onTaskAdded(newTask);
-    onClose();
-
-    setTitle("");
-    setPriority("Medium");
-    setDue("");
-    setNote("");
   }
 };
   return (
@@ -117,6 +125,7 @@ export default function AddTaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Task title"
+              required
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
             />
           </label>
@@ -136,7 +145,7 @@ export default function AddTaskModal({
             </label>
 
             <label className="space-y-1">
-              <span className="text-sm text-gray-600">Due Date</span>
+              <span className="text-sm text-gray-600">Created</span>
               <input
                 type="date"
                 value={due}

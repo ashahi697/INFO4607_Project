@@ -34,6 +34,10 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
       }),
     });
 
+    if (!response.ok) {
+      throw new Error("Failed to add transaction");
+    }
+
     const responseData = await response.json();
 
     const createdTransaction = Array.isArray(responseData?.message)
@@ -62,22 +66,6 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
     setNote("");
   } catch (error) {
     console.error("Error adding transaction:", error);
-
-    const newTransaction = {
-      title: merchant || "Unknown Transaction",
-      date,
-      amount: `${type === "income" ? "+" : "-"}$${Number(amount).toFixed(2)}`,
-      id: Date.now().toString(),
-    };
-
-    onTransactionAdded(newTransaction);
-    onClose();
-
-    setAmount("");
-    setDate("");
-    setMerchant("");
-    setType("expense");
-    setNote("");
   }
 };
 
@@ -96,12 +84,7 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
           </button>
         </div>
 
-        <form
-          className="space-y-4 p-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-          }}
-        >
+        <form className="space-y-4 p-5" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="space-y-1">
               <span className="text-sm text-gray-600">Amount</span>
@@ -111,6 +94,7 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
                 onChange={(e) => setAmount(e.target.value)}
                 step="0.01"
                 placeholder="0.00"
+                required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
               />
             </label>
@@ -121,6 +105,7 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                required
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition-colors focus:border-gray-500"
               />
             </label>
@@ -172,7 +157,6 @@ export default function AddTransactionModal({ isOpen, onClose, userID, onTransac
             </button>
             <button
               type="submit"
-              onClick={handleSubmit}
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700"
             >
               Add Transaction

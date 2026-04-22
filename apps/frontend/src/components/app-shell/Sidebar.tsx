@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import AddTransactionModal from "./AddTransactionModal";
 import AddTaskModal from "./AddTaskModal";
@@ -28,8 +28,10 @@ type SidebarProps = {
   }) => void;
   onScheduleAdded: (schedule: {
     title: string;
-    day: string;
-    time: string;
+    start_date: string;
+    end_date?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
     id: string;
   }) => void;
 };
@@ -67,7 +69,7 @@ export default function Sidebar({
           onClick={() => setIsScheduleOpen(true)}
           className="w-full rounded-lg bg-gray-600 px-4 py-2 text-white transition hover:bg-gray-500"
         >
-          + Add Schedule
+          + Add Event
         </button>
       </div>
 
