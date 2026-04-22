@@ -2,11 +2,16 @@ from dataTypes import Calendar, get_remaining_budget_by_month, calculate_prod_sc
 from supabase_client import supabase_client
 from productivity_heatmap import create_productivity_heatmap
 from datetime import datetime, timedelta
+import re
 
 def _to_date_only(date_str):
     if date_str is None:
         return None
-    return str(date_str).split("T")[0].split(" ")[0]
+    text = str(date_str)
+    match = re.search(r"\d{4}-\d{2}-\d{2}", text)
+    if match:
+        return match.group(0)
+    return text.split("T")[0].split(" ")[0]
 
 def get_all_events(userID):
     res = (
@@ -260,12 +265,13 @@ def edit_user_task(userID, task_id, taskData):
     )
 
     sync_daily_productivity_score(userID, new_completed_date)
-    if old_completed_date and old_completed_date != new_completed_date:
+    if old_completed_date and _to_date_only(old_completed_date) != new_completed_date:
         sync_daily_productivity_score(userID, old_completed_date)
 
     return res.data
 
 def complete_user_task(userID, task_id, completed_date):
+    new_completed_date = _to_date_only(completed_date)
     existing_task = (
         supabase_client
         .table("tasks")
@@ -280,15 +286,15 @@ def complete_user_task(userID, task_id, completed_date):
         supabase_client
         .table("tasks")
         .update({
-            "completed_date": _to_date_only(completed_date),
+            "completed_date": new_completed_date,
         })
         .eq("uuid", userID)
         .eq("id", task_id)
         .execute()
     )
 
-    sync_daily_productivity_score(userID, completed_date)
-    if old_completed_date and _to_date_only(old_completed_date) != _to_date_only(completed_date):
+    sync_daily_productivity_score(userID, new_completed_date)
+    if old_completed_date and _to_date_only(old_completed_date) != new_completed_date:
         sync_daily_productivity_score(userID, old_completed_date)
 
     return res.data
@@ -302,7 +308,7 @@ def incomplete_user_task(userID, task_id):
         .eq("id", task_id)
         .execute()
     )
-    old_completed_date = existing_task.data[0]["completed_date"] if existing_task.data else None
+    old_completed_date = _to_date_only(existing_task.data[0]["completed_date"]) if existing_task.data else None
 
     res = (
         supabase_client
@@ -386,12 +392,17 @@ def get_daily_productivity_score(userID, prod_date):
     res = (
         supabase_client
         .table("tasks")
-        .select("priority_weight")
+        .select("priority_weight, completed_date")
         .eq("uuid", userID)
-        .eq("completed_date", date_only)
         .execute()
     )
-    return calculate_prod_score(res.data or [])
+    rows = res.data or []
+    matching_rows = [
+        {"priority_weight": row.get("priority_weight")}
+        for row in rows
+        if _to_date_only(row.get("completed_date")) == date_only
+    ]
+    return calculate_prod_score(matching_rows)
 
 def sync_daily_productivity_score(userID, prod_date):
     date_only = _to_date_only(prod_date)

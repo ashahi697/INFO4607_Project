@@ -1,27 +1,30 @@
 import React from "react";
 
-type ScheduleItem = {
+type ScheduleEvent = {
+  event_id?: string;
   title: string;
   start_date: string;
   end_date?: string | null;
   start_time?: string | null;
   end_time?: string | null;
-  id: string;
+  description?: string | null;
 };
 
-type AddScheduleModalProps = {
+type EditScheduleModalProps = {
   isOpen: boolean;
   onClose: () => void;
   userID: string;
-  onScheduleAdded: (item: ScheduleItem) => void;
+  event: ScheduleEvent | null;
+  onScheduleEdited: (event: ScheduleEvent) => void;
 };
 
-export default function AddScheduleModal({
+export default function EditScheduleModal({
   isOpen,
   onClose,
   userID,
-  onScheduleAdded,
-}: AddScheduleModalProps) {
+  event,
+  onScheduleEdited,
+}: EditScheduleModalProps) {
   const [title, setTitle] = React.useState("");
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
@@ -29,85 +32,79 @@ export default function AddScheduleModal({
   const [endTime, setEndTime] = React.useState("");
   const [note, setNote] = React.useState("");
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    if (!isOpen || !event) return;
+
+    setTitle(event.title ?? "");
+    setStartDate(event.start_date ?? "");
+    setEndDate(event.end_date ?? "");
+    setStartTime(event.start_time ?? "");
+    setEndTime(event.end_time ?? "");
+    setNote(event.description ?? "");
+  }, [isOpen, event]);
+
+  if (!isOpen || !event) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
+    if (!event.event_id) return;
 
-  try {
-    if (!startDate) {
-      throw new Error("Start date is required");
-    }
+    try {
+      if (!startDate) {
+        throw new Error("Start date is required");
+      }
+      if (endDate && endDate < startDate) {
+        throw new Error("End date cannot be before start date");
+      }
 
-    if (endDate && endDate < startDate) {
-      throw new Error("End date cannot be before start date");
-    }
+      const response = await fetch(
+        `/api/edit_event?userID=${userID}&event_id=${encodeURIComponent(event.event_id)}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title,
+            description: note || "",
+            start_time: startTime || null,
+            end_time: endTime || null,
+            start_date: startDate,
+            end_date: endDate || null,
+            recurrences: null,
+            repeat_until: null,
+          }),
+        }
+      );
 
-    const response = await fetch(`/api/create_event?userID=${userID}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      if (!response.ok) {
+        throw new Error("Failed to edit schedule item");
+      }
+
+      onScheduleEdited({
+        event_id: event.event_id,
         title,
         description: note || "",
-        start_time: startTime || null,
-        end_time: endTime || null,
         start_date: startDate,
         end_date: endDate || null,
-        recurrences: null,
-        repeat_until: null,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to add schedule item");
+        start_time: startTime || null,
+        end_time: endTime || null,
+      });
+      onClose();
+    } catch (error) {
+      console.error("Error editing schedule item:", error);
     }
-
-    const responseData = await response.json();
-
-    const createdSchedule = Array.isArray(responseData?.message)
-      ? responseData.message[0]
-      : responseData?.message;
-
-    const createdId =
-      createdSchedule?.schedule_id ||
-      createdSchedule?.event_id ||
-      createdSchedule?.id ||
-      Date.now().toString();
-
-    const newSchedule = {
-      title,
-      start_date: startDate,
-      end_date: endDate || null,
-      start_time: startTime || null,
-      end_time: endTime || null,
-      id: createdId,
-    };
-
-    onScheduleAdded(newSchedule);
-    onClose();
-
-    setTitle("");
-    setStartDate("");
-    setEndDate("");
-    setStartTime("");
-    setEndTime("");
-    setNote("");
-  } catch (error) {
-    console.error("Error adding schedule item:", error);
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
       <div className="w-full max-w-lg rounded-xl border bg-white shadow-lg">
         <div className="flex items-center justify-between border-b px-5 py-3">
-          <h3 className="font-medium">Add Schedule Item</h3>
+          <h3 className="font-medium">Edit Schedule Item</h3>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close add schedule modal"
+            aria-label="Close edit schedule modal"
             className="text-gray-500 transition-colors hover:text-gray-700"
           >
             X
@@ -196,7 +193,7 @@ export default function AddScheduleModal({
               type="submit"
               className="rounded-lg bg-gray-900 px-4 py-2 text-sm text-white transition-colors hover:bg-gray-700"
             >
-              Add Event
+              Save Changes
             </button>
           </div>
         </form>

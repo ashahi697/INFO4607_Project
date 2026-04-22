@@ -1,5 +1,4 @@
 import "./App.css";
-import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/app-shell/Sidebar";
 import Topbar from "./components/app-shell/Topbar";
@@ -7,40 +6,29 @@ import Dashboard from "./components/dashboard/DashboardPage";
 import Financial from "./components/pages/financial";
 import Productivity from "./components/pages/productivity";
 import Calendar from "./components/pages/calendar";
+import {
+  APP_EVENT_SCHEDULE_CREATED,
+  APP_EVENT_TASK_CREATED,
+  APP_EVENT_TRANSACTION_CREATED,
+} from "./lib/app-events";
 
 export const userID = "03d78572-f213-4584-b8b2-e1a34dd1c030";
 
 function App() {
-  const [transactions, setTransactions] = useState([
-  { title: "Amazon Purchase", date: "Jan 15, 2025", amount: "-$89.99", id: "1" },
-]);
-  const [tasks, setTasks] = useState([
-  { title: "Prepare client presentation", priority: "Medium", due: "Jan 18, 2025", completed: false, id: "1" },
-]);
-
-const [scheduleItems, setScheduleItems] = useState([
-  { title: "Team Meeting", day: "Monday", time: "9:00 AM – 10:00 AM", id: "1" },
-]);
 const handleAddTransaction = (newTransaction: {
   title: string;
   date: string;
   amount: string;
   id: string;
 }) => {
-  setTransactions((prev) => [newTransaction, ...prev]);
+  window.dispatchEvent(new CustomEvent(APP_EVENT_TRANSACTION_CREATED, { detail: newTransaction }));
 };
 const handleAddTask = async (newTask: any) => {
-  setTasks((prev) => [
-    ...prev,
-    { ...newTask, id: Date.now().toString(), completed: false }
-  ]);
+  window.dispatchEvent(new CustomEvent(APP_EVENT_TASK_CREATED, { detail: newTask }));
 };
 
 const handleAddSchedule = async (newSchedule: any) => {
-  setScheduleItems((prev) => [
-    ...prev,
-    { ...newSchedule, id: Date.now().toString() }
-  ]);
+  window.dispatchEvent(new CustomEvent(APP_EVENT_SCHEDULE_CREATED, { detail: newSchedule }));
 };
   return (
     <BrowserRouter>

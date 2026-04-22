@@ -1,6 +1,6 @@
 import React from "react";
 
-type Transaction = { title: string; date: string; amount: string };
+type Transaction = { title: string; date: string; amount: string; note?: string };
 type TransactionWithId = Transaction & { id: string };
 
 type EditTransactionModalProps = {
@@ -24,6 +24,21 @@ export default function EditTransactionModal({
   const [type, setType] = React.useState("expense");
   const [note, setNote] = React.useState("");
 
+  const normalizeInputDate = (rawDate?: string): string => {
+    if (!rawDate) return "";
+
+    const directMatch = rawDate.match(/^\d{4}-\d{2}-\d{2}/);
+    if (directMatch) return directMatch[0];
+
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) return "";
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   React.useEffect(() => {
     if (!isOpen || !transaction) return;
 
@@ -31,10 +46,10 @@ export default function EditTransactionModal({
     const isIncome = transaction.amount.trim().startsWith("+");
 
     setAmount(numericAmount);
-    setDate(transaction.date);
+    setDate(normalizeInputDate(transaction.date));
     setMerchant(transaction.title);
     setType(isIncome ? "income" : "expense");
-    setNote("");
+    setNote(transaction.note ?? "");
   }, [isOpen, transaction]);
 
   if (!isOpen) return null;
@@ -69,6 +84,7 @@ export default function EditTransactionModal({
         title: merchant || "Unknown Transaction",
         date,
         amount: `${type === "income" ? "+" : "-"}$${Number(amount || 0).toFixed(2)}`,
+        note,
       };
 
       onTransactionEdited(editedTransaction);

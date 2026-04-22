@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import AddTaskModal from "../app-shell/AddTaskModal";
 import TaskCompletionModal from "../app-shell/TaskCompletionModal";
 import { userID } from "../../App";
+import { APP_EVENT_TASK_CREATED } from "../../lib/app-events";
 
 type Task = {
   id: string;
@@ -35,6 +36,21 @@ const normalizePriority = (task: any): "High" | "Medium" | "Low" => {
 
 const formatTaskDate = (rawDate: string | undefined): string => {
   if (!rawDate) return "";
+
+  const datePartMatch = rawDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (datePartMatch) {
+    const year = Number(datePartMatch[1]);
+    const month = Number(datePartMatch[2]);
+    const day = Number(datePartMatch[3]);
+    const parsedLocal = new Date(year, month - 1, day);
+    if (!Number.isNaN(parsedLocal.getTime())) {
+      return parsedLocal.toLocaleDateString([], {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    }
+  }
 
   const parsed = new Date(rawDate);
   if (Number.isNaN(parsed.getTime())) return rawDate;
@@ -88,6 +104,18 @@ const getTaskTimestamp = (task: Task): number => {
   const sourceDate = task.createdAt || task.due;
   const parsed = sourceDate ? new Date(sourceDate).getTime() : NaN;
   return Number.isNaN(parsed) ? Number.MAX_SAFE_INTEGER : parsed;
+};
+
+const getCompletionTimestamp = (task: Task): number => {
+  const normalizedCompleted = normalizeInputDate(task.completedDate);
+  if (!normalizedCompleted) return Number.MIN_SAFE_INTEGER;
+  return new Date(`${normalizedCompleted}T00:00:00`).getTime();
+};
+
+const getPriorityRank = (priority: Task["priority"]): number => {
+  if (priority === "High") return 0;
+  if (priority === "Medium") return 1;
+  return 2;
 };
 
 const isDateWithinRange = (rawDate: string, range: WeekRange): boolean => {
@@ -151,12 +179,14 @@ function TasksCard({
   title,
   tasks,
   emptyMessage,
+  dateLabel,
   onTaskToggle,
   onTaskDelete,
 }: {
   title: string;
   tasks: Task[];
   emptyMessage: string;
+  dateLabel: "Created" | "Date Completed";
   onTaskToggle: (task: Task) => void;
   onTaskDelete?: (task: Task) => void;
 }) {
@@ -182,7 +212,11 @@ function TasksCard({
               </label>
               <div className="text-sm text-gray-500">
                 <span className="inline-block px-2 py-0.5 rounded bg-gray-100 mr-2">{task.priority} Priority</span>
-                <span>Due: {task.due || "No due date"}</span>
+                {dateLabel === "Date Completed" ? (
+                  <span>Date Completed: {formatTaskDate(task.completedDate) || "No completion date"}</span>
+                ) : (
+                  <span>Created: {task.due || "No created date"}</span>
+                )}
               </div>
             </div>
             {onTaskDelete ? (
@@ -364,7 +398,14 @@ export default function ProductivityPage() {
   };
 
   const incompleteTasks = useMemo(
-    () => tasks.filter((task) => !task.completed).sort((a, b) => getTaskTimestamp(a) - getTaskTimestamp(b)),
+    () =>
+      tasks
+        .filter((task) => !task.completed)
+        .sort((a, b) => {
+          const priorityDiff = getPriorityRank(a.priority) - getPriorityRank(b.priority);
+          if (priorityDiff !== 0) return priorityDiff;
+          return getTaskTimestamp(a) - getTaskTimestamp(b);
+        }),
     [tasks]
   );
 
@@ -372,13 +413,28 @@ export default function ProductivityPage() {
     () =>
       tasks
         .filter((task) => task.completed)
-        .sort((a, b) => getTaskTimestamp(b) - getTaskTimestamp(a)),
+        .sort((a, b) => {
+          const completedDiff = getCompletionTimestamp(b) - getCompletionTimestamp(a);
+          if (completedDiff !== 0) return completedDiff;
+          return getTaskTimestamp(b) - getTaskTimestamp(a);
+        }),
     [tasks]
   );
 
   useEffect(() => {
     fetchTasks();
     fetchHeatmap();
+  }, []);
+
+  useEffect(() => {
+    const handleTaskCreated = () => {
+      fetchTasks();
+    };
+
+    window.addEventListener(APP_EVENT_TASK_CREATED, handleTaskCreated);
+    return () => {
+      window.removeEventListener(APP_EVENT_TASK_CREATED, handleTaskCreated);
+    };
   }, []);
 
   return (
@@ -413,6 +469,7 @@ export default function ProductivityPage() {
             title="Incomplete Tasks"
             tasks={incompleteTasks}
             emptyMessage="No incomplete tasks."
+            dateLabel="Created"
             onTaskToggle={openTaskCompletionModal}
             onTaskDelete={handleDeleteTask}
           />
@@ -420,6 +477,7 @@ export default function ProductivityPage() {
             title="Completed Tasks"
             tasks={completedTasks}
             emptyMessage="No completed tasks."
+            dateLabel="Date Completed"
             onTaskToggle={openTaskCompletionModal}
           />
         </div>
@@ -432,73 +490,16 @@ export default function ProductivityPage() {
         onTaskAdded={handleTaskAdded}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {habits.map((item) => (
-          <div
-            key={item.label}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-          >
-            <div className="text-sm text-gray-500">{item.label}</div>
-            <div className="mt-2 text-2xl font-semibold text-gray-900">
-              {item.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b px-5 py-3">
-          <h2 className="font-medium text-gray-900">Task Overview</h2>
-        </div>
-
-        <div className="space-y-3 p-5">
-          {tasks.length === 0 ? (
-            <div className="text-sm text-gray-500">No tasks yet.</div>
-          ) : (
-            tasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between rounded-lg border border-gray-100 p-4"
-              >
-                <div>
-                  <div
-                    className={`font-medium ${
-                      task.completed
-                        ? "text-gray-400 line-through"
-                        : "text-gray-900"
-                    }`}
-                  >
-                    {task.title}
-                  </div>
-
-                  <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                    <span
-                      className={`rounded px-2 py-0.5 text-xs font-medium ${
-                        task.priority === "High"
-                          ? "bg-red-50 text-red-600"
-                          : task.priority === "Medium"
-                          ? "bg-yellow-50 text-yellow-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {task.priority}
-                    </span>
-
-                    <span>Due: {task.due || "No due date"}</span>
-                  </div>
-                </div>
-
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  readOnly
-                  className="h-4 w-4"
-                />
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      <TaskCompletionModal
+        isOpen={isTaskModalOpen}
+        selectedTask={selectedTask}
+        taskCompletionDate={taskCompletionDate}
+        isTaskActionLoading={isTaskActionLoading}
+        onTaskCompletionDateChange={setTaskCompletionDate}
+        onClose={closeTaskCompletionModal}
+        onMarkComplete={handleCompleteTask}
+        onMarkIncomplete={handleIncompleteTask}
+      />
     </div>
   );
 }

@@ -49,14 +49,15 @@ def create_productivity_heatmap(prod_scores):
         # 4. DATA PROCESSING
         df = pd.DataFrame(prod_scores)
         df['dates'] = pd.to_datetime(df['dates'])
-        df['Week'] = df['dates'].dt.isocalendar().week
+        df['WeekStart'] = df['dates'] - pd.to_timedelta(df['dates'].dt.weekday, unit='D')
+        df['WeekKey'] = df['WeekStart'].dt.strftime('%Y-%m-%d')
         df['Day'] = df['dates'].dt.day_name()
         print(f"[heatmap] dataframe_rows={len(df)}")
 
         # Aggregating scores by day/week
         pivot = df.pivot_table(
             index='Day',
-            columns='Week',
+            columns='WeekKey',
             values='productivity_score',
             aggfunc='sum'
         ).fillna(0)
@@ -65,6 +66,16 @@ def create_productivity_heatmap(prod_scores):
         # Standard Mon-Sun order
         day_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
         pivot = pivot.reindex(day_order).fillna(0)
+
+        # Replace week-number columns with explicit date ranges (e.g., "Apr 14 - Apr 20")
+        week_label_map = {}
+        for week_key in pivot.columns:
+            week_start = pd.to_datetime(week_key)
+            week_end = week_start + pd.Timedelta(days=6)
+            start_label = f"{week_start.strftime('%b')} {week_start.day}"
+            end_label = f"{week_end.strftime('%b')} {week_end.day}"
+            week_label_map[week_key] = f"{start_label} - {end_label}"
+        pivot = pivot.rename(columns=week_label_map)
 
         # 5. THE "PROLIFIQ" HEATMAP COLORS
         heat_colors = [
@@ -91,7 +102,7 @@ def create_productivity_heatmap(prod_scores):
 
         plt.title(f"PROLIFIQ PERFORMANCE", fontsize=18, fontweight='bold', pad=30)
         plt.ylabel("")
-        plt.xlabel("Calendar Week Number", fontsize=12, labelpad=15)
+        plt.xlabel("Date Range", fontsize=12, labelpad=15)
         plt.xticks(rotation=0)
         plt.tight_layout()
 
@@ -108,7 +119,7 @@ def create_productivity_heatmap(prod_scores):
 
         return {
             "days": [str(day) for day in pivot.index],
-            "weeks": [int(week) for week in pivot.columns],
+            "weeks": [str(week) for week in pivot.columns],
             "values": values,
             "image_path": str(output_path)
         }

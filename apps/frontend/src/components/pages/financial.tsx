@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { userID } from "../../App";
 import AddTransactionModal from "../app-shell/AddTransactionModal";
 import EditTransactionModal from "../app-shell/EditTransactionModal";
+import { APP_EVENT_TRANSACTION_CREATED } from "../../lib/app-events";
 
 export default function FinancialPage() {
 
@@ -77,7 +78,8 @@ export default function FinancialPage() {
         budgetData?.budget?.planned_amount ?? remainingData?.remaining_budget?.planned_amount ?? 0
       );
       const spentThisMonth = Number(remainingData?.remaining_budget?.spent ?? 0);
-      const remaining = Number(remainingData?.remaining_budget?.remaining ?? monthlyBudget - spentThisMonth);
+      const incomeThisMonth = Number(remainingData?.remaining_budget?.income ?? 0);
+      const remaining = monthlyBudget + incomeThisMonth - spentThisMonth;
 
       setBudgetSummary({
         monthlyBudget: Number.isNaN(monthlyBudget) ? 0 : monthlyBudget,
@@ -94,7 +96,6 @@ export default function FinancialPage() {
     { label: "Monthly Budget", value: `$${budgetSummary.monthlyBudget.toFixed(2)}` },
     { label: "Spent This Month", value: `$${budgetSummary.spentThisMonth.toFixed(2)}` },
     { label: "Remaining", value: `$${budgetSummary.remaining.toFixed(2)}` },
-    { label: "Subscriptions", value: "4 Active" },
   ];
 
   useEffect(() => {
@@ -103,6 +104,18 @@ export default function FinancialPage() {
 
   useEffect(() => {
     fetchBudgetSummary(selectedBudgetMonth);
+  }, [selectedBudgetMonth]);
+
+  useEffect(() => {
+    const handleTransactionCreated = () => {
+      fetchTransactions();
+      fetchBudgetSummary(selectedBudgetMonth);
+    };
+
+    window.addEventListener(APP_EVENT_TRANSACTION_CREATED, handleTransactionCreated);
+    return () => {
+      window.removeEventListener(APP_EVENT_TRANSACTION_CREATED, handleTransactionCreated);
+    };
   }, [selectedBudgetMonth]);
 
   return (
@@ -142,7 +155,7 @@ export default function FinancialPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (
           <div key={card.label} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="text-sm text-gray-500">{card.label}</div>
@@ -183,7 +196,9 @@ export default function FinancialPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-auto">
-                <div className="font-medium text-gray-900">{t.amount}</div>
+                <div className={`font-medium ${t.amount.startsWith("+") ? "text-green-600" : "text-gray-900"}`}>
+                  {t.amount}
+                </div>
                 <button
                   type="button"
                   aria-label="Edit transaction"
